@@ -95,8 +95,7 @@ textarea { min-height: 80px; resize: vertical; }
 .cb span { min-width: 0; overflow-wrap: anywhere; }
 
 .foot { display: flex; flex-wrap: wrap; background: var(--bar); border: 1px solid var(--line); font-size: 11px; margin: 32px 0 calc(16px + env(safe-area-inset-bottom, 0px)); }
-.foot span { padding: 5px 8px; border-right: 1px solid var(--line); flex: 1 1 auto; text-align: center; }
-.foot span:last-child { border-right: none; }
+.foot span { padding: 5px 8px; flex: 1 1 50%; text-align: center; }
 
 /* Editor */
 .ebar {
@@ -156,6 +155,41 @@ body.editing::before { content: ""; position: fixed; inset: 0 0 auto; height: en
 .padbox canvas { display: block; width: 100%; height: 200px; touch-action: none; }
 input[type="range"] { width: 100%; accent-color: #000; }
 
+/* Feste Navigationsleiste unten */
+body.tabs { padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px)); }
+body.fixedbar { padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px)); }
+.tabbar, .fbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; background: var(--bar); border-top: 1px solid var(--line);
+  padding: 0 env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+}
+.tabbar-in { max-width: 760px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); }
+.tab {
+  font: inherit; font-size: 11px; color: var(--fg); background: none; border: none; border-right: 1px solid #A8A8A8;
+  min-height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; cursor: pointer; padding: 6px 2px;
+}
+.tab:last-child { border-right: none; }
+.tab svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.tab[aria-current="page"] { background: #fff; color: var(--logo); font-weight: 700; box-shadow: inset 0 3px 0 var(--logo); }
+.tab.plus svg { stroke: var(--logo); stroke-width: 2.4; }
+.fbar-in { max-width: 760px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; padding: 8px 12px; }
+.fbar .btn { min-height: 48px; font-size: 14px; }
+
+/* Formular */
+.opts { display: flex; }
+.opts button {
+  flex: 1; font: inherit; font-size: 15px; min-height: 46px; background: #fff; color: var(--fg);
+  border: 1px solid var(--line); margin-left: -1px; cursor: pointer; padding: 0 8px;
+}
+.opts button:first-child { margin-left: 0; }
+.opts button[aria-pressed="true"] { background: var(--fg); color: #fff; font-weight: 700; }
+.opts.stack { flex-direction: column; }
+.opts.stack button { margin-left: 0; margin-top: -1px; text-align: left; padding: 0 12px; }
+.opts.stack button:first-child { margin-top: 0; }
+.dev { border: 1px solid var(--line); padding: 10px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 4px; }
+.info { border: 1px solid var(--line); padding: 12px; font-weight: 700; font-size: 14px; margin: 0 0 12px; }
+.fsec { scroll-margin-top: 70px; }
+.jump a { display: block; padding: 12px 4px; border-bottom: 1px solid var(--soft); color: var(--fg); text-decoration: none; cursor: pointer; }
+
 #toast {
   position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(130px + env(safe-area-inset-bottom, 0px)); z-index: 60;
   background: var(--fg); color: #fff; padding: 10px 14px; font-size: 14px; max-width: calc(100% - 32px); text-align: center;
@@ -187,7 +221,7 @@ const pad2 = n => String(n).padStart(2, '0');
 const todayDE = () => { const d = new Date(); return pad2(d.getDate()) + '.' + pad2(d.getMonth() + 1) + '.' + d.getFullYear(); };
 const fmtDate = ts => { const d = new Date(ts); return pad2(d.getDate()) + '.' + pad2(d.getMonth() + 1) + '.' + d.getFullYear() + ', ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes()); };
 const copyBuf = b => (b instanceof ArrayBuffer ? b.slice(0) : new Uint8Array(b).slice().buffer);
-const fileSafe = s => (String(s || 'Bericht').replace(/[\\/:*?"<>|]+/g, '').replace(/\s+/g, '_').slice(0, 80) || 'Bericht');
+const fileSafe = s => (String(s || 'Bericht').replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/Ä/g, 'Ae').replace(/Ö/g, 'Oe').replace(/Ü/g, 'Ue').replace(/ß/g, 'ss').replace(/[\\/:*?"<>|]+/g, '').replace(/\s+/g, '_').slice(0, 80) || 'Bericht');
 
 let toastT;
 function toast(t) { const el = $('toast'); el.textContent = t; el.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { el.hidden = true; }, 3200); }
@@ -288,30 +322,56 @@ const footer = () =>
 let cur = null;          // geöffneter Bericht
 let saveT = null;
 
-async function showHome() {
+let tab = 'vorlagen';
+const ICON = {
+  vorlagen: '<svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M9 12h6M9 16h6"/></svg>',
+  berichte: '<svg viewBox="0 0 24 24"><path d="M3 6h7l2 2h9v11H3z"/><path d="M8 14l2.5 2.5L16 11"/></svg>',
+  plus: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>',
+  settings: '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4.5 4.5-6.5 8-6.5s7 2 8 6.5"/></svg>'
+};
+function tabBar() {
+  const t = (id, label) => '<button type="button" class="tab" data-tab="' + id + '"' + (tab === id ? ' aria-current="page"' : '') + '>' + ICON[id] + '<span>' + label + '</span></button>';
+  return '<nav class="tabbar" aria-label="Hauptnavigation"><div class="tabbar-in">' + t('vorlagen', 'Vorlagen') + t('berichte', 'Berichte') +
+    '<label class="tab plus file">' + ICON.plus + '<span>Hochladen</span><input type="file" id="upTpl" accept=".pdf,.xlsx,.xls,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" aria-label="PDF oder Excel hochladen"></label>' +
+    t('settings', 'Einstellungen') + '</div></nav>';
+}
+function setChrome(kind) {
+  document.body.classList.toggle('editing', kind !== 'tabs');
+  document.body.classList.toggle('tabs', kind === 'tabs');
+  document.body.classList.toggle('fixedbar', kind === 'fixedbar');
+}
+
+async function showHome() { return showTab(tab === 'settings' ? 'vorlagen' : tab); }
+
+async function showTab(which) {
   await flush();
-  cur = null; document.body.classList.remove('editing'); closeSheet();
+  cur = null; closeSheet(); tab = which; setChrome('tabs');
+  if (which === 'settings') { showSettings(false); return; }
   let tpls = [], reps = [];
   try { [tpls, reps] = await Promise.all([DB.all('templates'), DB.all('reports')]); } catch (e) { toast('Gerätespeicher nicht verfügbar.'); }
   tpls.sort((a, b) => b.created - a.created); reps.sort((a, b) => b.updated - a.updated);
-  const typ = t => '<span class="tag">' + (t === 'pdf' ? 'PDF' : 'EXCEL') + '</span>';
-  app.innerHTML = bigHeader() +
-    '<h1>Formulare ausfüllen</h1><p class="muted">Lade eine leere Vorlage hoch. Daraus erstellst du beliebig viele Berichte, füllst sie aus, unterschreibst und teilst sie als PDF oder Excel.</p>' +
-    '<section><h2>Vorlagen</h2>' +
-    '<label class="btn primary block file">PDF oder Excel hochladen<input type="file" id="upTpl" accept=".pdf,.xlsx,.xls,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"></label>' +
-    '<div class="list">' + (tpls.length ? tpls.map(t =>
-      '<div class="item"><div class="item-main"><b>' + typ(t.type) + esc(t.name) + '</b><span>hochgeladen am ' + fmtDate(t.created) + '</span></div>' +
-      '<div class="item-btns"><button type="button" class="btn small primary" data-act="newrep" data-id="' + t.id + '">Ausfüllen</button>' +
-      '<button type="button" class="btn small" data-act="deltpl" data-id="' + t.id + '">Löschen</button></div></div>').join('')
-      : '<p class="empty">Noch keine Vorlage. Lade zum Beispiel einen leeren Prüfbericht als PDF oder Excel hoch.</p>') + '</div></section>' +
-    '<section><h2>Berichte</h2>' +
-    '<label class="btn block file">Geteilten Bericht öffnen (.json)<input type="file" id="upRep" accept=".json,application/json"></label>' +
-    '<div class="list">' + (reps.length ? reps.map(r =>
-      '<div class="item"><div class="item-main"><b>' + typ(r.type) + esc(r.name) + '</b><span>' + esc(r.author || '') + ' · zuletzt geändert ' + fmtDate(r.updated) + '</span></div>' +
-      '<div class="item-btns"><button type="button" class="btn small primary" data-act="open" data-id="' + r.id + '">Öffnen</button>' +
-      '<button type="button" class="btn small" data-act="delrep" data-id="' + r.id + '">Löschen</button></div></div>').join('')
-      : '<p class="empty">Noch keine Berichte. Tippe bei einer Vorlage auf „Ausfüllen“.</p>') + '</div></section>' +
-    footer();
+  const typ = t => '<span class="tag">' + (t === 'pdf' ? 'PDF' : t === 'form' ? 'FORMULAR' : 'EXCEL') + '</span>';
+  let body;
+  if (which === 'vorlagen') {
+    body = '<h1>Vorlagen</h1><p class="muted">Tippe auf „Ausfüllen“, um aus einer Vorlage einen neuen Bericht zu machen. Neue Vorlagen lädst du unten mit „Hochladen“ hoch.</p>' +
+      '<div class="list">' +
+      '<div class="item"><div class="item-main"><b>' + typ('form') + esc(BUILTIN.name) + '</b><span>Fest eingebaut · Anlagenprüfung nach AwSV</span></div>' +
+      '<div class="item-btns"><button type="button" class="btn small primary" data-act="newrep" data-id="' + BUILTIN.id + '">Ausfüllen</button></div></div>' +
+      tpls.map(t =>
+        '<div class="item"><div class="item-main"><b>' + typ(t.type) + esc(t.name) + '</b><span>hochgeladen am ' + fmtDate(t.created) + '</span></div>' +
+        '<div class="item-btns"><button type="button" class="btn small primary" data-act="newrep" data-id="' + t.id + '">Ausfüllen</button>' +
+        '<button type="button" class="btn small" data-act="deltpl" data-id="' + t.id + '">Löschen</button></div></div>').join('') +
+      '</div>' + (tpls.length ? '' : '<p class="muted" style="margin-top:12px">Eigene PDF- oder Excel-Vorlagen erscheinen hier, sobald du sie hochlädst.</p>');
+  } else {
+    body = '<h1>Berichte</h1>' +
+      '<div class="list">' + (reps.length ? reps.map(r =>
+        '<div class="item"><div class="item-main"><b>' + typ(r.type) + esc(r.name) + '</b><span>' + esc(r.author || '') + ' · zuletzt geändert ' + fmtDate(r.updated) + '</span></div>' +
+        '<div class="item-btns"><button type="button" class="btn small primary" data-act="open" data-id="' + r.id + '">Öffnen</button>' +
+        '<button type="button" class="btn small" data-act="delrep" data-id="' + r.id + '">Löschen</button></div></div>').join('')
+        : '<p class="empty">Noch keine Berichte. Gehe zu „Vorlagen“ und tippe auf „Ausfüllen“.</p>') + '</div>' +
+      '<label class="btn block file" style="margin-top:16px">Geteilten Bericht öffnen (.json)<input type="file" id="upRep" accept=".json,application/json"></label>';
+  }
+  app.innerHTML = bigHeader() + body + footer() + tabBar();
   window.scrollTo(0, 0);
 }
 
@@ -323,10 +383,19 @@ async function uploadTemplate(file) {
   const data = await file.arrayBuffer();
   await DB.put('templates', { id: uid(), name, type: isPdf ? 'pdf' : 'xlsx', data, created: Date.now() });
   toast('Vorlage „' + name + '“ gespeichert.');
-  showHome();
+  showTab('vorlagen');
 }
 
 async function newReport(tplId) {
+  if (tplId === BUILTIN.id) {
+    const r = {
+      id: uid(), templateId: BUILTIN.id, name: 'Prüfbericht AwSV ' + todayDE(), type: 'form', tpl: null,
+      author: settings.name, created: Date.now(), updated: Date.now(),
+      state: { values: formDefaults(), sig: null, signName: settings.name, signDate: todayDE() }
+    };
+    await DB.put('reports', r);
+    return openReport(r.id);
+  }
   const t = await DB.get('templates', tplId); if (!t) return;
   const r = {
     id: uid(), templateId: t.id, name: t.name + ' ' + todayDE(), type: t.type, tpl: t.data,
@@ -339,8 +408,131 @@ async function newReport(tplId) {
 
 async function openReport(id) {
   const r = await DB.get('reports', id); if (!r) { toast('Bericht nicht gefunden.'); return; }
-  cur = r; document.body.classList.add('editing');
-  if (r.type === 'pdf') await pdfEditor(); else await xlsEditor();
+  cur = r;
+  if (r.type === 'pdf') { setChrome('editor'); await pdfEditor(); }
+  else if (r.type === 'form') { setChrome('fixedbar'); formEditor(); }
+  else { setChrome('fixedbar'); await xlsEditor(); }
+}
+
+const fixedBar = () =>
+  '<div class="fbar"><div class="fbar-in">' +
+  '<button type="button" class="btn" data-act="jump">Abschnitte</button>' +
+  '<button type="button" class="btn" data-act="tosig">Unterschrift</button>' +
+  '<button type="button" class="btn primary" data-act="export">Teilen</button></div></div>';
+
+function jumpSheet() {
+  const heads = Array.prototype.slice.call(document.querySelectorAll('#app section h2'));
+  if (!heads.length) { toast('Keine Abschnitte vorhanden.'); return; }
+  openSheet('<h3>Abschnitte</h3><div class="jump">' + heads.map((h, i) => '<a data-j="' + i + '">' + esc(h.textContent) + '</a>').join('') + '</div>' +
+    '<button type="button" class="btn block" data-close="1">Schließen</button>', root => {
+    root.addEventListener('click', e => {
+      const i = e.target.getAttribute('data-j'); if (i == null) return;
+      closeSheet(); heads[+i].parentNode.scrollIntoView({ block: 'start' });
+    });
+  });
+}
+
+function signSection() {
+  const st = cur.state;
+  return '<section class="fsec" id="sigsec"><h2>Unterschrift</h2>' +
+    '<label class="row"><span class="lab">Name</span><input type="text" data-sv="signName" value="' + esc(st.signName || '') + '"></label>' +
+    '<label class="row"><span class="lab">Ort, Datum</span><input type="text" data-sv="signDate" value="' + esc(st.signDate || '') + '"></label>' +
+    '<div class="sigprev">' + (st.sig ? '<img alt="Unterschrift" src="' + st.sig.img + '">' : '<span class="muted">Noch nicht unterschrieben</span>') + '</div>' +
+    '<div class="two" style="margin-top:10px">' +
+    (settings.sig ? '<button type="button" class="btn" data-act="xsigmine">Meine Unterschrift</button>' : '') +
+    '<button type="button" class="btn" data-act="xsignew">' + (st.sig ? 'Neu unterschreiben' : 'Unterschreiben') + '</button>' +
+    (st.sig ? '<button type="button" class="btn danger" data-act="xsigdel">Entfernen</button>' : '') + '</div></section>';
+}
+function rerender() { const y = window.scrollY; if (cur.type === 'form') formEditor(); else renderXls(); window.scrollTo(0, y); }
+
+/* ================= Eingebautes Formular: Prüfbericht AwSV ================= */
+const BUILTIN = { id: 'builtin-awsv', name: 'Prüfbericht AwSV' };
+const fT = (k, l, d) => ({ t: 'T', k, l, d }), fA = (k, l) => ({ t: 'A', k, l }), fY = (k, l) => ({ t: 'Y', k, l }),
+  fR = (k, l) => ({ t: 'R', k, l }), fC = (k, l) => ({ t: 'C', k, l }), fG = list => ({ t: 'G', list }),
+  fO = (k, l, opts) => ({ t: 'O', k, l, opts }), fN = k => fA(k, 'Bemerkungen'), fD = (k, l, art) => ({ t: 'D', k, l, art }), fH = text => ({ t: 'H', text });
+const AWSV = [
+  { t: 'Berichtskopf', items: [fT('org', 'Sachverständigenorganisation'), fT('lanuv', 'Zulassung (LANUV)'), fT('nr', 'Prüfbericht Nr.'), fT('datum', 'Prüfdatum', true)] },
+  { t: 'Behörde und Prüfer', items: [fT('beh', 'Zuständige Behörde'), fT('beh_an', 'Anschrift der Behörde'), fT('beh_ap', 'Ansprechperson'), fT('beh_tel', 'Telefon der Behörde'),
+    fT('pr', 'Prüfer'), fT('pr_an', 'Anschrift des Prüfers'), fT('pr_mail', 'E-Mail des Prüfers'), fT('pr_tel', 'Telefon des Prüfers')] },
+  { t: 'Art der Prüfung', items: [fG([['a_vor', 'Prüfung vor Inbetriebnahme'], ['a_ander', 'Prüfung nach wesentlicher Änderung'],
+    ['a_erst', 'Prüfung an bestehender Anlage / Erstprüfung'], ['a_wieder', 'Wiederkehrende Prüfung'], ['a_wiederin', 'Prüfung vor Wiederinbetriebnahme'],
+    ['a_angeo', 'Angeordnete Prüfung'], ['a_nach', 'Nachprüfung'], ['a_still', 'Prüfung bei Stilllegung der Anlage']])] },
+  { t: 'Betreiber und Anlage', items: [fT('bet', 'Betreiber'), fT('bet_an', 'Anschrift des Betreibers'), fT('standort', 'Anlagenstandort'), fT('ansprech', 'Ansprechpartner'),
+    fT('ansprech_tel', 'Telefon des Ansprechpartners'), fT('bez', 'Betriebliche Bezeichnung'), fT('hersteller', 'Hersteller der Anlage'), fT('serie', 'Fabrik- / Seriennummer'), fT('baujahr', 'Baujahr')] },
+  { t: 'Art der Anlage', items: [fG([['x_lager', 'Lageranlage'], ['x_abf', 'Anlage zum Abfüllen'], ['x_umsch', 'Umschlaganlage'], ['x_hbv', 'HBV-Anlage']]), fA('abgrenz', 'Anlagenabgrenzung / wesentliche Anlagenteile')] },
+  { t: 'Stoffe und Volumen', items: [fT('stoff', 'Stoff'), fT('menge', 'Menge (m³)'), fT('wgk', 'WGK'), fT('vol', 'Anlagenvolumen (m³)'), fT('mwgk', 'Maßgebliche WGK'),
+    fT('gstufe', 'Gefährdungsstufe'), fT('aggr', 'Aggregatzustand'), fT('gebinde', 'Volumen der größten Gebindeeinheit (m³)')] },
+  { t: 'Prüfumfang', items: [fT('umfang', 'Prüfumfang'), fY('ordnung', 'Ordnungsprüfung'), fY('technik', 'Technische Prüfung'), fY('abgeschl', 'Prüfung der Gesamtanlage ist abgeschlossen'), fT('nichtgeprueft', 'Anlagenteile, die noch nicht geprüft wurden')] },
+  { t: 'Gesamtbeurteilung', items: [fO('gesamt', 'Bei der überprüften Anlage wurden festgestellt', ['keine Mängel', 'geringfügige Mängel', 'erhebliche Mängel', 'gefährliche Mängel']), fT('naechster', 'Nächster Prüftermin (MM/JJJJ)')] },
+  { t: 'Aufstellung', items: [fO('aufst', 'Aufstellung', ['oberirdisch', 'unterirdisch']), fY('schutz', 'Schutzgebiet'), fT('zone', 'Zone'), fY('ueber', 'Überschwemmungsgebiet'), fT('ueberart', 'Art'),
+    fT('inbetr', 'Inbetriebnahme'), fT('aender', 'Wesentliche Änderung'), fT('still', 'Stilllegung'), fT('letzte', 'Letzte Prüfung am', true), fR('pbvor', 'Prüfbericht vorhanden'),
+    fT('sv', 'Sachverständige Stelle'), fR('maengel', 'Mängel'), fR('maengelbes', 'Mängel beseitigt'), fN('bem9')] },
+  { t: 'Ordnungsprüfung', items: [fR('o1', 'Ausnahme von dem Erfordernis der Eignungsfeststellung (§ 41 AwSV)'), fR('o2', 'Wasserrechtliche Anzeige erstattet (§ 40 AwSV)'),
+    fR('o3', 'Wasserrechtliche Eignungsfeststellung liegt vor'), fR('o4', 'Wasserrechtliche Zulassungen und Genehmigungen liegen vor'), fT('o5', 'Genehmigungen / Erlaubnisse'),
+    fR('o6', 'Anlagendokumentation nach § 43 AwSV liegt vor'), fR('o7', 'Betriebsanweisung / Merkblatt nach § 44 AwSV liegt vor'), fT('o7t', 'Betriebsanweisung oder Merkblatt')] },
+  { t: 'Sicherheitseinrichtungen', items: [fG([['s_dw', 'Doppelwandig mit Leckanzeige'], ['s_ues', 'Überfüllsicherung'], ['s_auff', 'Auffangraum / Auffangwanne'], ['s_gwg', 'Grenzwertgeber'],
+    ['s_leck', 'Leckanzeige'], ['s_ausk', 'Auskleidung / Beschichtung'], ['s_fss', 'Flüssigkeitsstandanzeiger'], ['s_ahv', 'Antiheberventil'], ['s_lsa', 'Leckschutzauskleidung mit Leckanzeiger']])] },
+  { t: 'Rückhaltevolumen und Anforderungen', items: [fT('rv_erf', 'Rückhaltevolumen erforderlich (m³)'), fT('rv_vor', 'Rückhaltevolumen vorhanden (m³)'),
+    fY('se_vor', 'Erforderliche Sicherheitseinrichtungen sind vorhanden'), fR('se_pz', 'Prüfzeichenbescheide für die Sicherheitseinrichtungen sind vorhanden'),
+    fY('fb_pflicht', 'Fachbetriebspflichtig (§ 62 AwSV)'), fT('fb_nachw', 'Fachbetriebsnachweise'), fN('bem12a'),
+    fR('gw_ent', 'Entspricht die Anlage den gewässerschutzrelevanten Anforderungen (z. B. Eignungsfeststellung, Bauartzulassung, AwSV)?'), fN('bem12b')] },
+  { t: 'Technische Prüfung (Anforderungen erfüllt)', items: [fR('t17', '§ 17 AwSV (Grundsatzanforderungen)'), fR('t18', '§ 18 AwSV (Rückhaltung)'), fR('t19', '§ 19 AwSV (Entwässerung)'),
+    fR('t20', '§ 20 AwSV (Brandereignisse)'), fR('t21', '§ 21 AwSV (Rückhaltung Rohrleitungen)'), fR('t22', '§ 22 AwSV (Abwasseranlage als AR)'), fR('t23', '§ 23 AwSV (Befüllen / Entleeren)'),
+    fR('t28', '§ 28 AwSV (Umschlagflächen)'), fR('t31', '§ 31 AwSV (Fass- und Gebindelager)'), fR('t32', '§ 32 AwSV (Heizölverbraucheranlagen)'), fN('bem13')] },
+  { t: 'Rückhalteeinrichtungen', items: [fC('r_b', 'Beurteilung der Auffangeinrichtung / Beschichtung durch Inaugenscheinnahme'),
+    fG([['r_k', 'Keine sichtbaren Beschädigungen'], ['r_m', 'Mechanische Beschädigungen'], ['r_a', 'Ablösung / Blasenbildung'], ['r_ko', 'Korrosionsbildung'], ['r_s', 'Sonstige Beschädigung'], ['r_sm', 'Sonstige Mängel']]),
+    fY('r_abl', 'Abläufe im Auffangraum vorhanden'), fN('bem14')] },
+  { t: 'Abfüllplatz', items: [fC('f_b', 'Beurteilung des Abfüllplatzes / der Beschichtung durch Inaugenscheinnahme'),
+    fG([['f_k', 'Keine sichtbaren Beschädigungen'], ['f_m', 'Mechanische Beschädigungen'], ['f_a', 'Ablösung / Blasenbildung'], ['f_ko', 'Korrosionsbildung'], ['f_s', 'Sonstige Beschädigung']]),
+    fY('f_abl', 'Abläufe im Abfüllplatz vorhanden'), fN('bem15')] },
+  { t: 'Behälter', items: [fC('b_b', 'Beurteilung des Behälters durch Inaugenscheinnahme'),
+    fG([['b_k', 'Keine sichtbaren Beschädigungen'], ['b_m', 'Mechanische Beschädigungen'], ['b_a', 'Ablösung / Blasenbildung'], ['b_ko', 'Korrosionsbildung'], ['b_s', 'Sonstige Beschädigung'], ['b_an', 'Mängel Anfahrschutz'], ['b_st', 'Mängel Standsicherheit']]),
+    fT('b_wst', 'Werkstoff des Behälters'), fN('bem16')] },
+  { t: 'Rohrleitungen', items: [fC('l_b', 'Beurteilung der Rohrleitungen durch Inaugenscheinnahme'),
+    fG([['l_ober', 'Oberirdisch'], ['l_unter', 'Unterirdisch'], ['l_saug', 'Selbstüberwachende Saugleitung'], ['l_schutz', 'Saugleitung im Schutzrohr'], ['l_dw', 'Doppelwandig mit Leckanzeige'],
+      ['l_gleich', 'Gleichwertige Sicherheit'], ['l_k', 'Keine sichtbaren Beschädigungen'], ['l_verb', 'Rohrleitungsverbindung undicht'], ['l_undicht', 'Rohrleitung undicht'],
+      ['l_s', 'Sonstige Beschädigung'], ['l_ko', 'Korrosionsbildung'], ['l_st', 'Mängel Standsicherheit']]),
+    fT('l_wst', 'Werkstoff der Rohrleitung'), fN('bem17')] },
+  { t: 'Gewässerschutzrelevante Sicherheitseinrichtungen', items: [fD('g1', 'Leckanzeigegerät'), fD('g2', 'Grenzwertgeber'), fD('g3', 'Überfüllsicherung'), fD('g4', 'Flüssigkeitsstandanzeiger'), fD('g5', 'Sonstige', true), fN('bem18')] },
+  { t: 'Prüfung bei Stilllegung der Anlage', items: [fY('z1', 'Anlage von einem Fachbetrieb (§ 62 WHG) entleert und gereinigt'), fT('z1f', 'Fachbetrieb'),
+    fY('z2', 'Anlage gegen irrtümliches Befüllen / Benutzen ausreichend gesichert'), fY('z3', 'Anhaltspunkte für mögliche Boden- und / oder Grundwasserverunreinigungen'),
+    fC('z4', 'Eine erneute Inbetriebnahme ist nur zulässig, wenn die Anlage vor Wiederinbetriebnahme von einem Sachverständigen geprüft und als mängelfrei festgestellt wurde.'), fN('bem19')] },
+  { t: 'Beschreibung der Mängel / Mängelbeseitigung', items: [fA('om', 'Ordnungsmängel'), fA('tm', 'Technische Mängel'), fC('mb6', 'Mängelbehebung innerhalb von 6 Monaten'),
+    fT('mb_bis', 'Spätestens bis', true), fC('mbu', 'Mängelbehebung unverzüglich'), fY('nachpr', 'Nachprüfung erforderlich'), fN('bem20')] },
+  { t: 'Hinweise', items: [fH('Arbeiten (Errichten, Reinigen, Instandsetzen, Stilllegen) an Heizölverbraucheranlagen der Gefährdungsstufe „B“, „C“ und „D“ dürfen nur von Fachbetrieben nach § 62 AwSV ausgeführt werden.')] }
+];
+const isoToday = () => { const d = new Date(); return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); };
+const fdate = s => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || ''); return m ? m[3] + '.' + m[2] + '.' + m[1] : (s || ''); };
+function formDefaults() {
+  return { org: 'Kiwa GmbH, Hans-Böckler-Straße 20, 59269 Beckum', lanuv: 'LANUV NW-52-05008/2023/1.0', datum: isoToday(),
+    pr: settings.name || '', pr_an: 'Nordstraße 57, 52078 Aachen', pr_mail: 'info@buero-gus.de', pr_tel: '0241 / 5 66 14 70' };
+}
+
+function formEditor() {
+  const V = k => cur.state.values[k] == null ? '' : cur.state.values[k];
+  const opts = (k, list, stack) => '<div class="opts' + (stack ? ' stack' : '') + '" role="group" data-grp="' + k + '">' +
+    list.map(o => '<button type="button" data-opt="' + esc(o[0]) + '" aria-pressed="' + (V(k) === o[0] ? 'true' : 'false') + '">' + esc(o[1]) + '</button>').join('') + '</div>';
+  const cb = (k, l) => '<label class="cb"><input type="checkbox" data-fc="' + k + '"' + (V(k) === '1' ? ' checked' : '') + '><span>' + esc(l) + '</span></label>';
+  const item = it => {
+    switch (it.t) {
+      case 'T': return '<label class="row"><span class="lab">' + esc(it.l) + '</span><input type="' + (it.d ? 'date' : 'text') + '" data-fv="' + it.k + '" value="' + esc(V(it.k)) + '" autocomplete="off"></label>';
+      case 'A': return '<label class="row"><span class="lab">' + esc(it.l) + '</span><textarea data-fv="' + it.k + '" rows="3">' + esc(V(it.k)) + '</textarea></label>';
+      case 'Y': return '<div class="row"><span class="lab">' + esc(it.l) + '</span>' + opts(it.k, [['ja', 'Ja'], ['nein', 'Nein']]) + '</div>';
+      case 'R': return '<div class="row"><span class="lab">' + esc(it.l) + '</span>' + opts(it.k, [['ja', 'Ja'], ['nein', 'Nein'], ['nz', 'n. z.']]) + '</div>';
+      case 'C': return '<div class="row">' + cb(it.k, it.l) + '</div>';
+      case 'G': return '<div class="row">' + it.list.map(p => cb(p[0], p[1])).join('') + '</div>';
+      case 'O': return '<div class="row"><span class="lab">' + esc(it.l) + '</span>' + opts(it.k, it.opts.map(o => [o, o]), true) + '</div>';
+      case 'D': return '<div class="dev"><b>' + esc(it.l) + '</b>' +
+        (it.art ? '<label class="row"><span class="lab">Art der Einrichtung</span><input type="text" data-fv="' + it.k + '_art" value="' + esc(V(it.k + '_art')) + '"></label>' : '') +
+        cb(it.k + '_f', 'Funktionsprüfung') + cb(it.k + '_e', 'Prüfgerät elektrisch') + '<span class="lab">Gerät in Ordnung</span>' + opts(it.k + '_ok', [['ja', 'Ja'], ['nein', 'Nein']]) + '</div>';
+      case 'H': return '<p class="info">' + esc(it.text) + '</p>';
+    }
+    return '';
+  };
+  app.innerHTML = editorBar() +
+    '<h1 style="margin-top:4px">Bericht zur Anlagenprüfung nach AwSV</h1><p class="muted">Anlage zum Umgang mit wassergefährdenden Stoffen. Alles wird automatisch gespeichert.</p>' +
+    AWSV.map(s => '<section class="fsec"><h2>' + esc(s.t) + '</h2>' + s.items.map(item).join('') + '</section>').join('') +
+    signSection() + footer() + fixedBar();
 }
 
 function touch() {
@@ -600,7 +792,7 @@ function renderXls() {
     '<div class="hintbox">Die Felder wurden automatisch aus der Excel-Datei erkannt. Fehlt etwas, schalte „Auch vorhandene Texte bearbeiten“ ein.</div>' +
     '<label class="cb"><input type="checkbox" id="allEdit"' + (st.allEdit ? ' checked' : '') + '><span>Auch vorhandene Texte bearbeiten</span></label>';
   xModel.forEach(sh => {
-    html += '<section>' + (multi ? '<h2>' + esc(sh.name) + '</h2>' : '');
+    html += '<section class="fsec">' + (multi ? '<h2>' + esc(sh.name) + '</h2>' : '');
     sh.rows.forEach(segs => {
       const onlyLabels = segs.every(s => s.k === 'label');
       if (onlyLabels && !st.allEdit) { html += '<p class="xhead">' + segs.map(s => esc(s.text)).join(' · ') + '</p>'; return; }
@@ -613,15 +805,7 @@ function renderXls() {
     });
     html += '</section>';
   });
-  html += '<section><h2>Unterschrift</h2>' +
-    '<label class="row"><span class="lab">Name</span><input type="text" data-sv="signName" value="' + esc(st.signName || '') + '"></label>' +
-    '<label class="row"><span class="lab">Datum</span><input type="text" data-sv="signDate" value="' + esc(st.signDate || '') + '"></label>' +
-    '<div class="sigprev">' + (st.sig ? '<img alt="Unterschrift" src="' + st.sig.img + '">' : '<span class="muted">Noch nicht unterschrieben</span>') + '</div>' +
-    '<div class="two" style="margin-top:10px">' +
-    (settings.sig ? '<button type="button" class="btn" data-act="xsigmine">Meine Unterschrift</button>' : '') +
-    '<button type="button" class="btn" data-act="xsignew">' + (st.sig ? 'Neu unterschreiben' : 'Unterschreiben') + '</button>' +
-    (st.sig ? '<button type="button" class="btn danger" data-act="xsigdel">Entfernen</button>' : '') + '</div></section>' +
-    '<div style="margin-top:24px"><button type="button" class="btn primary block" data-act="export">Speichern und teilen</button></div>' + footer();
+  html += signSection() + footer() + fixedBar();
   app.innerHTML = html;
 }
 
@@ -774,6 +958,153 @@ function xlsxFromPdf() {
   return X.write(wb, { bookType: 'xlsx', type: 'array' });
 }
 
+/* ---------- PDF und Excel aus dem AwSV-Formular ---------- */
+async function pdfFromForm() {
+  const st = cur.state, V = k => st.values[k] == null ? '' : String(st.values[k]);
+  const doc = await PDFDocument.create();
+  const f = await doc.embedFont(StandardFonts.Helvetica), fb = await doc.embedFont(StandardFonts.HelveticaBold);
+  const ft = await doc.embedFont(StandardFonts.TimesRoman), ftb = await doc.embedFont(StandardFonts.TimesRomanBold);
+  const W = 595.28, H = 841.89, M = 40, CW = W - 2 * M, LH = 10.5, FS = 8.5;
+  const black = rgb(0, 0, 0), grey = rgb(0.93, 0.93, 0.93);
+  let pg, y;
+  const txt = (s, x, yy, size, font) => pg.drawText(safe(font, s), { x, y: H - yy, size, font, color: black });
+  const rect = (x, yy, w, h, fill) => pg.drawRectangle({ x, y: H - yy - h, width: w, height: h, borderColor: black, borderWidth: 0.6, color: fill });
+  const box = (x, yy, on) => {
+    pg.drawRectangle({ x, y: H - yy - 8, width: 8, height: 8, borderColor: black, borderWidth: 0.6 });
+    if (on) {
+      pg.drawLine({ start: { x: x + 1.5, y: H - yy - 4 }, end: { x: x + 3.4, y: H - yy - 6.6 }, thickness: 1, color: black });
+      pg.drawLine({ start: { x: x + 3.4, y: H - yy - 6.6 }, end: { x: x + 7, y: H - yy - 1 }, thickness: 1, color: black });
+    }
+  };
+  const header = () => {
+    const org = wrapText(safe(ft, V('org')), ft, 9, 165);
+    const oh = Math.max(34, org.length * 11 + 8);
+    rect(M, 28, 175, oh); org.forEach((l, i) => txt(l, M + 5, 28 + 12 + i * 11, 9, ft));
+    rect(M + 190, 34, 150, 20); txt(V('lanuv'), M + 196, 48, 9, ft);
+    txt('GuS', W - M - ftb.widthOfTextAtSize('GuS', 22), 50, 22, ftb);
+    return 28 + oh + 16;
+  };
+  const newPage = () => { pg = doc.addPage([W, H]); y = header(); };
+  const need = h => { if (y + h > H - 50) newPage(); };
+  const fieldRow = (l, v) => {
+    const lw = 170;
+    const L = wrapText(safe(f, l), f, FS, lw - 8), Vv = wrapText(safe(fb, v), fb, FS, CW - lw - 8);
+    const h = Math.max(L.length, Vv.length) * LH + 6; need(h);
+    rect(M, y, lw, h, grey); rect(M + lw, y, CW - lw, h);
+    L.forEach((t, i) => txt(t, M + 4, y + 11 + i * LH, FS, f));
+    Vv.forEach((t, i) => txt(t, M + lw + 4, y + 11 + i * LH, FS, fb));
+    y += h;
+  };
+  const choiceRow = (l, v, opts) => {
+    const ow = opts.length * 44, lw = CW - ow;
+    const L = wrapText(safe(f, l), f, FS, lw - 8); const h = Math.max(17, L.length * LH + 6); need(h);
+    rect(M, y, CW, h); pg.drawLine({ start: { x: M + lw, y: H - y }, end: { x: M + lw, y: H - y - h }, thickness: 0.6, color: black });
+    L.forEach((t, i) => txt(t, M + 4, y + 11 + i * LH, FS, f));
+    opts.forEach((o, i) => { const x = M + lw + 6 + i * 44; box(x, y + (h - 8) / 2, v === o[0]); txt(o[1], x + 11, y + h / 2 + 3, FS, f); });
+    y += h;
+  };
+  const cbRow = (l, on) => {
+    const L = wrapText(safe(f, l), f, FS, CW - 26); const h = Math.max(17, L.length * LH + 6); need(h);
+    rect(M, y, CW, h); box(M + 5, y + (h - 8) / 2, on); L.forEach((t, i) => txt(t, M + 19, y + 11 + i * LH, FS, f)); y += h;
+  };
+  const grid = list => {
+    for (let i = 0; i < list.length; i += 2) {
+      const a = list[i], b = list[i + 1], half = CW / 2;
+      const La = wrapText(safe(f, a.l), f, FS, half - 24), Lb = b ? wrapText(safe(f, b.l), f, FS, half - 24) : [];
+      const h = Math.max(17, Math.max(La.length, Lb.length) * LH + 6); need(h);
+      rect(M, y, half, h); rect(M + half, y, half, h);
+      box(M + 5, y + (h - 8) / 2, a.on); La.forEach((t, j) => txt(t, M + 19, y + 11 + j * LH, FS, f));
+      if (b) { box(M + half + 5, y + (h - 8) / 2, b.on); Lb.forEach((t, j) => txt(t, M + half + 19, y + 11 + j * LH, FS, f)); }
+      y += h;
+    }
+  };
+  const YN = [['ja', 'ja'], ['nein', 'nein']], YNN = [['ja', 'ja'], ['nein', 'nein'], ['nz', 'n. z.']];
+
+  newPage();
+  const nr = V('nr');
+  need(52); rect(M, y, CW, 50);
+  const t1 = 'Bericht zur Anlagenprüfung nach AwSV', t2 = 'Anlage zum Umgang mit wassergefährdenden Stoffen';
+  txt(t1, W / 2 - ftb.widthOfTextAtSize(t1, 13) / 2, y + 16, 13, ftb);
+  txt(t2, W / 2 - fb.widthOfTextAtSize(t2, 9.5) / 2, y + 29, 9.5, fb);
+  txt('Prüfbericht Nr.:  ' + nr, M + 5, y + 44, 9.5, fb);
+  const pd = 'Prüfdatum:  ' + fdate(V('datum')); txt(pd, W - M - 5 - fb.widthOfTextAtSize(pd, 9.5), y + 44, 9.5, fb);
+  y += 58;
+
+  AWSV.forEach(s => {
+    if (s.t === 'Berichtskopf') return;
+    need(30); y += 8;
+    txt(s.t, M, y + 9, 10.5, fb);
+    const tw = fb.widthOfTextAtSize(safe(fb, s.t), 10.5);
+    pg.drawLine({ start: { x: M, y: H - y - 11 }, end: { x: M + tw, y: H - y - 11 }, thickness: 0.6, color: black });
+    y += 15;
+    s.items.forEach(it => {
+      switch (it.t) {
+        case 'T': fieldRow(it.l, it.d ? fdate(V(it.k)) : V(it.k)); break;
+        case 'A': fieldRow(it.l, V(it.k)); break;
+        case 'Y': choiceRow(it.l, V(it.k), YN); break;
+        case 'R': choiceRow(it.l, V(it.k), YNN); break;
+        case 'C': cbRow(it.l, V(it.k) === '1'); break;
+        case 'G': grid(it.list.map(p => ({ l: p[1], on: V(p[0]) === '1' }))); break;
+        case 'O': grid(it.opts.map(o => ({ l: o, on: V(it.k) === o }))); break;
+        case 'D': {
+          const name = it.art ? 'Sonstige: ' + V(it.k + '_art') : it.l;
+          const parts = [V(it.k + '_f') === '1' ? 'Funktionsprüfung' : '', V(it.k + '_e') === '1' ? 'Prüfgerät elektrisch' : ''].filter(Boolean).join(', ');
+          choiceRow(name + (parts ? ' (' + parts + ')' : ''), V(it.k + '_ok'), YN); break;
+        }
+        case 'H': {
+          const L = wrapText(safe(fb, it.text), fb, FS, CW - 10); const h = L.length * LH + 10; need(h);
+          rect(M, y, CW, h); L.forEach((t, i) => txt(t, M + 5, y + 13 + i * LH, FS, fb)); y += h; break;
+        }
+      }
+    });
+  });
+
+  need(120); y += 34;
+  if (st.sig) {
+    const im = await doc.embedPng(st.sig.img);
+    const h = Math.min(56, 190 / st.sig.ratio), w = h * st.sig.ratio;
+    pg.drawImage(im, { x: W - M - 230 + (230 - w) / 2, y: H - y - h, width: w, height: h });
+  }
+  y += 62;
+  pg.drawLine({ start: { x: M, y: H - y }, end: { x: M + 170, y: H - y }, thickness: 0.5, color: black });
+  pg.drawLine({ start: { x: W - M - 230, y: H - y }, end: { x: W - M, y: H - y }, thickness: 0.5, color: black });
+  txt(st.signDate || '', M + 4, y - 4, 9, f);
+  txt('Ort, Datum', M, y + 11, 8, f);
+  txt((st.signName || '') + ' (Prüfer)', W - M - 230, y + 11, 8, f);
+
+  const n = doc.getPageCount();
+  doc.getPages().forEach((p, i) => {
+    pg = p;
+    txt('n.z. = nicht zutreffend', M, H - 30, 7.5, f);
+    const s1 = 'Seite ' + (i + 1) + ' von ' + n; txt(s1, W / 2 - f.widthOfTextAtSize(s1, 7.5) / 2, H - 30, 7.5, f);
+    const s2 = 'Prüfbericht Nr.: ' + nr; txt(s2, W - M - fb.widthOfTextAtSize(safe(fb, s2), 7.5), H - 30, 7.5, fb);
+  });
+  return doc.save();
+}
+
+function xlsxFromForm() {
+  const X = window.XLSX; const st = cur.state; const V = k => st.values[k] == null ? '' : String(st.values[k]);
+  const L = { ja: 'ja', nein: 'nein', nz: 'n. z.' };
+  const rows = [['Abschnitt', 'Feld', 'Wert']];
+  AWSV.forEach(s => s.items.forEach(it => {
+    if (it.t === 'T') rows.push([s.t, it.l, it.d ? fdate(V(it.k)) : V(it.k)]);
+    else if (it.t === 'A' || it.t === 'O') rows.push([s.t, it.l, V(it.k)]);
+    else if (it.t === 'Y' || it.t === 'R') rows.push([s.t, it.l, L[V(it.k)] || '']);
+    else if (it.t === 'C') rows.push([s.t, it.l, V(it.k) === '1' ? 'ja' : '']);
+    else if (it.t === 'G') it.list.forEach(p => rows.push([s.t, p[1], V(p[0]) === '1' ? 'ja' : '']));
+    else if (it.t === 'D') {
+      const nm = it.art ? 'Sonstige: ' + V(it.k + '_art') : it.l;
+      rows.push([s.t, nm + ' - Funktionsprüfung', V(it.k + '_f') === '1' ? 'ja' : '']);
+      rows.push([s.t, nm + ' - Prüfgerät elektrisch', V(it.k + '_e') === '1' ? 'ja' : '']);
+      rows.push([s.t, nm + ' - Gerät in Ordnung', L[V(it.k + '_ok')] || '']);
+    }
+  }));
+  rows.push(['Unterschrift', 'Name', st.signName || ''], ['Unterschrift', 'Ort, Datum', st.signDate || ''], ['Unterschrift', 'Unterschrieben', st.sig ? 'ja' : 'nein']);
+  const ws = X.utils.aoa_to_sheet(rows); ws['!cols'] = [{ wch: 34 }, { wch: 62 }, { wch: 60 }];
+  const wb = X.utils.book_new(); X.utils.book_append_sheet(wb, ws, 'Prüfbericht');
+  return X.write(wb, { bookType: 'xlsx', type: 'array' });
+}
+
 function b64(buf) { const u = new Uint8Array(buf); let s = ''; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(s); }
 function unb64(s) { const bin = atob(s); const u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u.buffer; }
 
@@ -791,12 +1122,12 @@ function exportSheet() {
       try {
         await flush();
         let bytes, name, mime; const base = fileSafe(cur.name);
-        if (kind === 'pdf') { bytes = cur.type === 'pdf' ? await pdfFromPdf() : await pdfFromXlsx(); name = base + '.pdf'; mime = 'application/pdf'; }
+        if (kind === 'pdf') { bytes = cur.type === 'pdf' ? await pdfFromPdf() : cur.type === 'form' ? await pdfFromForm() : await pdfFromXlsx(); name = base + '.pdf'; mime = 'application/pdf'; }
         else if (kind === 'xlsx') {
           if (!(await waitXlsx())) throw new Error('Excel-Funktion nicht geladen');
-          bytes = cur.type === 'pdf' ? xlsxFromPdf() : xlsxFromXlsx(); name = base + '.xlsx'; mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+          bytes = cur.type === 'pdf' ? xlsxFromPdf() : cur.type === 'form' ? xlsxFromForm() : xlsxFromXlsx(); name = base + '.xlsx'; mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
         } else {
-          const copy = Object.assign({}, cur, { tpl: b64(cur.tpl) });
+          const copy = Object.assign({}, cur, { tpl: cur.tpl ? b64(cur.tpl) : null });
           bytes = new TextEncoder().encode(JSON.stringify({ format: 'gus-bericht', version: 1, report: copy })); name = base + '.json'; mime = 'application/json';
         }
         readySheet(bytes, name, mime);
@@ -831,7 +1162,7 @@ async function importReport(file) {
   try {
     const d = JSON.parse(await file.text());
     if (!d || d.format !== 'gus-bericht' || !d.report) throw new Error();
-    const r = d.report; r.tpl = unb64(r.tpl); r.updated = Date.now();
+    const r = d.report; r.tpl = r.tpl ? unb64(r.tpl) : null; r.updated = Date.now();
     await DB.put('reports', r);
     toast('Bericht „' + r.name + '“ übernommen.');
     openReport(r.id);
@@ -840,7 +1171,7 @@ async function importReport(file) {
 
 /* ================= Einstellungen ================= */
 function showSettings(first) {
-  document.body.classList.remove('editing');
+  tab = 'settings'; setChrome(first ? 'none' : 'tabs');
   app.innerHTML = bigHeader() +
     '<h1>' + (first ? 'Willkommen' : 'Einstellungen') + '</h1>' +
     (first ? '<p>Trage einmal deinen Namen ein. Er erscheint in deinen Berichten.</p>' : '') +
@@ -852,7 +1183,7 @@ function showSettings(first) {
     '<section><button type="button" class="btn primary block" data-act="saveset">Speichern</button></section>' +
     '<section><h2>So kommt die App auf den Home-Bildschirm</h2><p>1. Diese Seite in Safari öffnen.<br>2. Auf das Teilen-Symbol tippen.<br>3. „Zum Home-Bildschirm“ wählen.</p>' +
     '<p class="muted">Vorlagen und Berichte werden auf jedem iPhone einzeln gespeichert. Kollegen bekommen Vorlagen als Datei und Berichte über „An Kollegen zum Weiterbearbeiten“.</p></section>' +
-    footer();
+    footer() + (first ? '' : tabBar());
   window.scrollTo(0, 0);
 }
 
@@ -866,6 +1197,15 @@ function arm(btn, label) {
 }
 
 app.addEventListener('click', async e => {
+  const tb = e.target.closest('.tab[data-tab]');
+  if (tb) { showTab(tb.dataset.tab); return; }
+  const ob = e.target.closest('button[data-opt]');
+  if (ob && cur) {
+    const grp = ob.parentNode, k = grp.getAttribute('data-grp'), val = ob.getAttribute('data-opt');
+    cur.state.values[k] = cur.state.values[k] === val ? '' : val;
+    Array.prototype.forEach.call(grp.children, x => x.setAttribute('aria-pressed', x.getAttribute('data-opt') === cur.state.values[k] ? 'true' : 'false'));
+    touch(); return;
+  }
   const mb = e.target.closest('#modes button');
   if (mb) { setMode(mb.dataset.mode === mode ? 'view' : mb.dataset.mode); return; }
   const ov = e.target.classList && e.target.classList.contains('ov') ? e.target : null;
@@ -890,9 +1230,11 @@ app.addEventListener('click', async e => {
     });
   }
   else if (act === 'zoomin' || act === 'zoomout') { const z = clamp(zoom + (act === 'zoomin' ? 0.5 : -0.5), 1, 3); if (z !== zoom) { zoom = z; renderPages(); } }
-  else if (act === 'xsigmine') { cur.state.sig = settings.sig; touch(); renderXls(); }
-  else if (act === 'xsignew') signaturePad(sig => { cur.state.sig = sig; touch(); renderXls(); });
-  else if (act === 'xsigdel') { cur.state.sig = null; touch(); renderXls(); }
+  else if (act === 'xsigmine') { cur.state.sig = settings.sig; touch(); rerender(); }
+  else if (act === 'xsignew') signaturePad(sig => { cur.state.sig = sig; touch(); rerender(); });
+  else if (act === 'xsigdel') { cur.state.sig = null; touch(); rerender(); }
+  else if (act === 'jump') jumpSheet();
+  else if (act === 'tosig') { const s = $('sigsec'); if (s) s.scrollIntoView({ block: 'start' }); }
   else if (act === 'signew') { const n = $('setName').value; signaturePad(() => { settings.name = n; showSettings(false); }); }
   else if (act === 'sigdel') { settings.sig = null; await saveSettings(); showSettings(false); }
   else if (act === 'saveset') {
@@ -908,6 +1250,8 @@ app.addEventListener('input', e => {
   else if (t.dataset.xv != null) { cur.state.values[t.dataset.xv] = t.value; touch(); }
   else if (t.dataset.xc != null) { cur.state.checks[t.dataset.xc] = t.checked; touch(); }
   else if (t.dataset.sv != null) { cur.state[t.dataset.sv] = t.value; touch(); }
+  else if (t.dataset.fv != null) { cur.state.values[t.dataset.fv] = t.value; touch(); }
+  else if (t.dataset.fc != null) { cur.state.values[t.dataset.fc] = t.checked ? '1' : ''; touch(); }
 });
 app.addEventListener('change', e => {
   const t = e.target;

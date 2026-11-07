@@ -1,6 +1,6 @@
 // Offline-Speicher für GuS Formulare
 // Bei jeder Änderung an der App die Nummer erhöhen, damit die iPhones die neue Version laden
-const CACHE = 'gus-formulare-v1';
+const CACHE = 'gus-formulare-v2';
 // Weitere Dateien (Schriften, Bilddecoder) werden beim ersten Gebrauch automatisch gespeichert
 const CORE = [
   './',
