@@ -1,0 +1,932 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>GuS Formulare</title>
+<meta name="theme-color" content="#D0D0D0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="GuS Formulare">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icons/icon-192.png">
+<style>
+/* Stil angelehnt an buero-gus.de: graue Balken mit schwarzem Rahmen, blaues GuS-Logo in Serifen, schlichte Arial-Schrift */
+:root {
+  --bg: #FFFFFF;
+  --fg: #000000;
+  --muted: #444444;
+  --bar: #D0D0D0;
+  --soft: #EDEDED;
+  --page: #8A8A8A;
+  --line: #000000;
+  --logo: #0000B3;
+  --ok: #1B6B2E;
+  --serif: "Times New Roman", Times, "Liberation Serif", serif;
+  --sans: Arial, Helvetica, "Liberation Sans", sans-serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; background: var(--bg); color: var(--fg); }
+body {
+  font-family: var(--sans); font-size: 15px; line-height: 1.4;
+  padding-left: max(12px, env(safe-area-inset-left, 0px));
+  padding-right: max(12px, env(safe-area-inset-right, 0px));
+  padding-top: env(safe-area-inset-top, 0px);
+  -webkit-text-size-adjust: 100%;
+}
+.wrap { max-width: 760px; margin: 0 auto; }
+[hidden] { display: none !important; }
+
+/* Kopf wie auf der Website */
+.topbar { height: 22px; background: var(--bar); border: 1px solid var(--line); }
+.logo { border: 1px solid var(--line); border-top: none; text-align: center; padding: 4px 8px 8px; }
+.gus { font-family: var(--serif); font-weight: 700; font-size: 40px; line-height: 1.1; letter-spacing: .35em; padding-left: .35em; color: var(--logo); }
+.ib { font-family: var(--serif); font-weight: 700; font-size: 11px; letter-spacing: .32em; margin-top: 8px; }
+.nm { font-family: var(--serif); font-weight: 700; font-size: 11.5px; letter-spacing: .28em; margin-top: 6px; }
+.subbar { background: var(--bar); border: 1px solid var(--line); border-top: none; padding: 7px 8px; font-size: 13px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.subbar b { font-weight: 700; }
+
+h1 { font-size: 19px; margin: 20px 0 6px; }
+h2 { font-size: 16px; margin: 0 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
+h3 { font-size: 16px; margin: 0 0 12px; }
+section { margin-top: 26px; }
+p { margin: 0 0 10px; }
+.muted { color: var(--muted); font-size: 13px; }
+.empty { color: var(--muted); font-size: 14px; border: 1px dashed var(--muted); padding: 12px; }
+
+.btn {
+  font: inherit; font-size: 15px; font-weight: 700; min-height: 46px; padding: 0 14px;
+  background: #fff; color: var(--fg); border: 2px solid var(--line); border-radius: 0; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; text-align: center; gap: 6px;
+  -webkit-appearance: none; appearance: none; text-decoration: none;
+}
+.btn.primary { background: var(--fg); color: #fff; }
+.btn.small { min-height: 38px; font-size: 13px; padding: 0 10px; border-width: 1px; }
+.btn.block { display: flex; width: 100%; }
+.btn.danger { color: #9B1C1C; border-color: #9B1C1C; }
+.btn:disabled { opacity: .45; }
+.link { background: none; border: none; font: inherit; font-size: 13px; text-decoration: underline; color: var(--fg); padding: 6px 0; cursor: pointer; }
+.btn:focus-visible, .link:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 3px solid var(--logo); outline-offset: 2px; }
+.file { position: relative; overflow: hidden; }
+.file input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; font-size: 0; }
+.stack { display: flex; flex-direction: column; gap: 10px; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+.list { display: flex; flex-direction: column; margin-top: 12px; }
+.item { border: 1px solid var(--line); margin-top: -1px; padding: 10px; display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.item-main { min-width: 0; flex: 1 1 180px; display: flex; flex-direction: column; }
+.item-main b { overflow-wrap: anywhere; }
+.item-main span { font-size: 12px; color: var(--muted); }
+.item-btns { display: flex; gap: 6px; }
+.tag { display: inline-block; font-size: 11px; font-weight: 700; border: 1px solid var(--line); padding: 0 5px; margin-right: 6px; background: var(--soft); }
+
+.row { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; min-width: 0; }
+.lab { font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+input[type="text"], input[type="date"], textarea, select {
+  font: inherit; font-size: 16px; color: var(--fg); background: #fff; border: 1px solid var(--line); border-radius: 0;
+  padding: 10px; min-height: 46px; width: 100%; min-width: 0; -webkit-appearance: none; appearance: none;
+}
+textarea { min-height: 80px; resize: vertical; }
+.cb { display: flex; gap: 12px; align-items: center; min-height: 44px; padding: 4px 0; border-bottom: 1px solid var(--soft); cursor: pointer; }
+.cb input { width: 24px; height: 24px; flex: none; accent-color: #000; margin: 0; }
+.cb span { min-width: 0; overflow-wrap: anywhere; }
+
+.foot { display: flex; flex-wrap: wrap; background: var(--bar); border: 1px solid var(--line); font-size: 11px; margin: 32px 0 calc(16px + env(safe-area-inset-bottom, 0px)); }
+.foot span { padding: 5px 8px; border-right: 1px solid var(--line); flex: 1 1 auto; text-align: center; }
+.foot span:last-child { border-right: none; }
+
+/* Editor */
+.ebar {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: var(--bar); border: 1px solid var(--line);
+  display: flex; align-items: center; gap: 8px; padding: 6px; margin: 0 0 12px;
+}
+body.editing::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 21; background: var(--bg); }
+.etitle { flex: 1; min-width: 0; font-weight: 700; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; text-align: center; }
+.hintbox { border: 1px solid var(--line); background: var(--soft); padding: 10px; font-size: 13px; margin-bottom: 12px; }
+
+.pages { overflow-x: auto; background: var(--page); padding: 10px 0 140px; margin: 0 -12px; }
+.pg { position: relative; margin: 0 auto; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.4); }
+.pg canvas { display: block; width: 100%; height: 100%; }
+.ov { position: absolute; inset: 0; }
+.ov.add { cursor: crosshair; }
+.pgno { text-align: center; color: #fff; font-size: 12px; padding: 4px 0 12px; }
+.it { position: absolute; touch-action: none; cursor: move; }
+.it-text { white-space: pre; line-height: 1.15; font-family: Helvetica, Arial, sans-serif; color: #000; outline: 1px dashed #0000B3; outline-offset: 1px; background: rgba(0,0,179,.06); min-width: 6px; }
+.it-text.ph { color: #0000B3; }
+.it-check { outline: 1px dashed #0000B3; }
+.it-check svg { display: block; width: 100%; height: 100%; }
+.it-sig { outline: 1px dashed #0000B3; }
+.it-sig img { display: block; width: 100%; height: auto; pointer-events: none; }
+
+.tools {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 25; background: var(--bar); border-top: 1px solid var(--line);
+  padding: 8px max(12px, env(safe-area-inset-right, 0px)) calc(8px + env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px));
+}
+.tools-in { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 6px; }
+.modes { display: flex; }
+.modes button { flex: 1; font: inherit; font-size: 12.5px; font-weight: 700; min-height: 44px; background: #fff; color: var(--fg); border: 1px solid var(--line); margin-left: -1px; padding: 0 2px; cursor: pointer; }
+.modes button:first-child { margin-left: 0; }
+.modes button[aria-pressed="true"] { background: var(--fg); color: #fff; }
+.zoomrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; }
+.zoomrow .zb { display: flex; gap: 6px; align-items: center; flex: none; white-space: nowrap; }
+#zoomv { min-width: 44px; text-align: center; }
+
+.xhead { font-weight: 700; margin: 16px 0 8px; overflow-wrap: anywhere; }
+.xrow { border-top: 1px solid var(--soft); padding-top: 10px; margin-bottom: 4px; }
+.xlab { font-size: 14px; margin-bottom: 8px; overflow-wrap: anywhere; }
+.sigprev { border: 1px solid var(--line); min-height: 90px; display: flex; align-items: center; justify-content: center; padding: 8px; background: #fff; }
+.sigprev img { max-height: 80px; max-width: 100%; }
+
+/* Unteres Blatt */
+#sheet { position: fixed; inset: 0; z-index: 50; }
+.sheet-bg { position: absolute; inset: 0; background: rgba(0,0,0,.35); }
+.sheet-panel {
+  position: absolute; left: 0; right: 0; bottom: 0; background: #fff; border-top: 2px solid var(--line);
+  max-height: 88vh; overflow-y: auto;
+  padding: 16px max(16px, env(safe-area-inset-right, 0px)) calc(16px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+}
+.sheet-in { max-width: 600px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chips button { font: inherit; font-size: 14px; min-height: 40px; min-width: 52px; background: #fff; border: 1px solid var(--line); cursor: pointer; color: var(--fg); }
+.chips button[aria-pressed="true"] { background: var(--fg); color: #fff; font-weight: 700; }
+.padbox { border: 1px solid var(--line); background: #fff; }
+.padbox canvas { display: block; width: 100%; height: 200px; touch-action: none; }
+input[type="range"] { width: 100%; accent-color: #000; }
+
+#toast {
+  position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(130px + env(safe-area-inset-bottom, 0px)); z-index: 60;
+  background: var(--fg); color: #fff; padding: 10px 14px; font-size: 14px; max-width: calc(100% - 32px); text-align: center;
+}
+.busy { padding: 30px 0; text-align: center; color: var(--muted); }
+@media (prefers-reduced-motion: no-preference) { .sheet-panel { animation: up .18s ease-out; } @keyframes up { from { transform: translateY(30px); opacity: .6; } } }
+</style>
+<script src="lib/pdf-lib.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
+</head>
+<body>
+<div class="wrap" id="app"><div class="busy">Wird geladen …</div></div>
+<div id="sheet" hidden></div>
+<div id="toast" role="status" hidden></div>
+
+<script type="module">
+import * as pdfjsLib from './lib/pdfjs.min.js';
+pdfjsLib.GlobalWorkerOptions.workerSrc = './lib/pdfjs.worker.min.js';
+const PL = window.PDFLib;
+const { PDFDocument, StandardFonts, rgb } = PL;
+
+/* ================= Hilfen ================= */
+const $ = id => document.getElementById(id);
+const app = $('app'), sheet = $('sheet');
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const pad2 = n => String(n).padStart(2, '0');
+const todayDE = () => { const d = new Date(); return pad2(d.getDate()) + '.' + pad2(d.getMonth() + 1) + '.' + d.getFullYear(); };
+const fmtDate = ts => { const d = new Date(ts); return pad2(d.getDate()) + '.' + pad2(d.getMonth() + 1) + '.' + d.getFullYear() + ', ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes()); };
+const copyBuf = b => (b instanceof ArrayBuffer ? b.slice(0) : new Uint8Array(b).slice().buffer);
+const fileSafe = s => (String(s || 'Bericht').replace(/[\\/:*?"<>|]+/g, '').replace(/\s+/g, '_').slice(0, 80) || 'Bericht');
+
+let toastT;
+function toast(t) { const el = $('toast'); el.textContent = t; el.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { el.hidden = true; }, 3200); }
+
+/* ================= Speicher (IndexedDB) ================= */
+const DB = (() => {
+  let p;
+  const open = () => p || (p = new Promise((res, rej) => {
+    const r = indexedDB.open('gus-formulare', 1);
+    r.onupgradeneeded = () => {
+      const d = r.result;
+      d.createObjectStore('templates', { keyPath: 'id' });
+      d.createObjectStore('reports', { keyPath: 'id' });
+      d.createObjectStore('settings', { keyPath: 'key' });
+    };
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  }));
+  const run = async (store, mode, fn) => {
+    const d = await open();
+    return new Promise((res, rej) => {
+      const t = d.transaction(store, mode); const req = fn(t.objectStore(store));
+      t.oncomplete = () => res(req ? req.result : undefined);
+      t.onerror = () => rej(t.error); t.onabort = () => rej(t.error);
+    });
+  };
+  return {
+    all: s => run(s, 'readonly', st => st.getAll()),
+    get: (s, k) => run(s, 'readonly', st => st.get(k)),
+    put: (s, v) => run(s, 'readwrite', st => st.put(v)),
+    del: (s, k) => run(s, 'readwrite', st => st.delete(k))
+  };
+})();
+
+let settings = { key: 'me', name: '', sig: null };
+async function loadSettings() { try { const s = await DB.get('settings', 'me'); if (s) settings = Object.assign(settings, s); } catch (e) {} }
+async function saveSettings() { try { await DB.put('settings', settings); } catch (e) { toast('Speichern nicht möglich.'); } }
+
+/* ================= Blatt (Dialog von unten) ================= */
+function openSheet(html, mount) {
+  sheet.innerHTML = '<div class="sheet-bg" data-close="1"></div><div class="sheet-panel" role="dialog" aria-modal="true"><div class="sheet-in">' + html + '</div></div>';
+  sheet.hidden = false;
+  if (mount) mount(sheet.querySelector('.sheet-in'));
+}
+function closeSheet() { sheet.hidden = true; sheet.innerHTML = ''; if (sheetClose) { const f = sheetClose; sheetClose = null; f(); } }
+let sheetClose = null;
+sheet.addEventListener('click', e => { if (e.target.getAttribute('data-close')) closeSheet(); });
+
+/* ================= Unterschrift zeichnen ================= */
+function signaturePad(done, opts) {
+  opts = opts || {};
+  openSheet(
+    '<h3>Unterschrift</h3><p class="muted">Mit dem Finger oder Stift im Feld unterschreiben.</p>' +
+    '<div class="padbox"><canvas id="pad"></canvas></div>' +
+    (opts.noSave ? '' : '<label class="cb"><input type="checkbox" id="padSave" checked><span>Als meine Unterschrift auf diesem Gerät speichern</span></label>') +
+    '<div class="two"><button type="button" class="btn" id="padClr">Löschen</button><button type="button" class="btn primary" id="padOk">Übernehmen</button></div>',
+    root => {
+      const c = root.querySelector('#pad');
+      const r = c.getBoundingClientRect(); const dpr = window.devicePixelRatio || 1;
+      c.width = Math.round(r.width * dpr); c.height = Math.round(r.height * dpr);
+      const ctx = c.getContext('2d'); ctx.scale(dpr, dpr);
+      ctx.lineWidth = 2.6; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#0A0A7A';
+      let down = false, lx = 0, ly = 0, drawn = false;
+      const pt = e => { const b = c.getBoundingClientRect(); return [e.clientX - b.left, e.clientY - b.top]; };
+      c.addEventListener('pointerdown', e => { down = true; [lx, ly] = pt(e); try { c.setPointerCapture(e.pointerId); } catch (x) {} e.preventDefault(); });
+      c.addEventListener('pointermove', e => { if (!down) return; const [x, y] = pt(e); ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(x, y); ctx.stroke(); lx = x; ly = y; drawn = true; e.preventDefault(); });
+      const up = () => { down = false; };
+      c.addEventListener('pointerup', up); c.addEventListener('pointercancel', up);
+      root.querySelector('#padClr').addEventListener('click', () => { ctx.clearRect(0, 0, c.width, c.height); drawn = false; });
+      root.querySelector('#padOk').addEventListener('click', async () => {
+        if (!drawn) { toast('Bitte zuerst unterschreiben.'); return; }
+        const sig = trimCanvas(c);
+        const keep = root.querySelector('#padSave');
+        if (keep && keep.checked) { settings.sig = sig; await saveSettings(); }
+        closeSheet(); done(sig);
+      });
+    });
+}
+function trimCanvas(c) {
+  const ctx = c.getContext('2d'); const { width: w, height: h } = c; const d = ctx.getImageData(0, 0, w, h).data;
+  let x0 = w, y0 = h, x1 = -1, y1 = -1;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (d[(y * w + x) * 4 + 3] > 10) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+  if (x1 < 0) return null;
+  const m = 6; x0 = Math.max(0, x0 - m); y0 = Math.max(0, y0 - m); x1 = Math.min(w - 1, x1 + m); y1 = Math.min(h - 1, y1 + m);
+  const o = document.createElement('canvas'); o.width = x1 - x0 + 1; o.height = y1 - y0 + 1;
+  o.getContext('2d').drawImage(c, x0, y0, o.width, o.height, 0, 0, o.width, o.height);
+  return { img: o.toDataURL('image/png'), ratio: o.width / o.height };
+}
+
+/* ================= Kopf und Fuß ================= */
+const bigHeader = () =>
+  '<div class="topbar"></div><header class="logo"><div class="gus">GuS</div><div class="ib">INGENIEURBÜRO</div><div class="nm">GEBBEKEN u. SCHERENBERG</div></header>' +
+  '<div class="subbar"><span>Formulare · <b>' + esc(settings.name || 'nicht angemeldet') + '</b></span><button type="button" class="link" data-act="settings">Einstellungen</button></div>';
+const footer = () =>
+  '<div class="foot"><span>info @ Buero-GuS.de</span><span>Ingenieurbüro GuS</span><span>Nordstraße 57 · 52078 Aachen</span><span>Prototyp 0.1</span></div>';
+
+/* ================= Startseite ================= */
+let cur = null;          // geöffneter Bericht
+let saveT = null;
+
+async function showHome() {
+  await flush();
+  cur = null; document.body.classList.remove('editing'); closeSheet();
+  let tpls = [], reps = [];
+  try { [tpls, reps] = await Promise.all([DB.all('templates'), DB.all('reports')]); } catch (e) { toast('Gerätespeicher nicht verfügbar.'); }
+  tpls.sort((a, b) => b.created - a.created); reps.sort((a, b) => b.updated - a.updated);
+  const typ = t => '<span class="tag">' + (t === 'pdf' ? 'PDF' : 'EXCEL') + '</span>';
+  app.innerHTML = bigHeader() +
+    '<h1>Formulare ausfüllen</h1><p class="muted">Lade eine leere Vorlage hoch. Daraus erstellst du beliebig viele Berichte, füllst sie aus, unterschreibst und teilst sie als PDF oder Excel.</p>' +
+    '<section><h2>Vorlagen</h2>' +
+    '<label class="btn primary block file">PDF oder Excel hochladen<input type="file" id="upTpl" accept=".pdf,.xlsx,.xls,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"></label>' +
+    '<div class="list">' + (tpls.length ? tpls.map(t =>
+      '<div class="item"><div class="item-main"><b>' + typ(t.type) + esc(t.name) + '</b><span>hochgeladen am ' + fmtDate(t.created) + '</span></div>' +
+      '<div class="item-btns"><button type="button" class="btn small primary" data-act="newrep" data-id="' + t.id + '">Ausfüllen</button>' +
+      '<button type="button" class="btn small" data-act="deltpl" data-id="' + t.id + '">Löschen</button></div></div>').join('')
+      : '<p class="empty">Noch keine Vorlage. Lade zum Beispiel einen leeren Prüfbericht als PDF oder Excel hoch.</p>') + '</div></section>' +
+    '<section><h2>Berichte</h2>' +
+    '<label class="btn block file">Geteilten Bericht öffnen (.json)<input type="file" id="upRep" accept=".json,application/json"></label>' +
+    '<div class="list">' + (reps.length ? reps.map(r =>
+      '<div class="item"><div class="item-main"><b>' + typ(r.type) + esc(r.name) + '</b><span>' + esc(r.author || '') + ' · zuletzt geändert ' + fmtDate(r.updated) + '</span></div>' +
+      '<div class="item-btns"><button type="button" class="btn small primary" data-act="open" data-id="' + r.id + '">Öffnen</button>' +
+      '<button type="button" class="btn small" data-act="delrep" data-id="' + r.id + '">Löschen</button></div></div>').join('')
+      : '<p class="empty">Noch keine Berichte. Tippe bei einer Vorlage auf „Ausfüllen“.</p>') + '</div></section>' +
+    footer();
+  window.scrollTo(0, 0);
+}
+
+async function uploadTemplate(file) {
+  const name = file.name.replace(/\.(pdf|xlsx|xls)$/i, '');
+  const isPdf = /\.pdf$/i.test(file.name) || file.type === 'application/pdf';
+  const isXls = /\.(xlsx|xls)$/i.test(file.name);
+  if (!isPdf && !isXls) { toast('Bitte eine PDF- oder Excel-Datei wählen.'); return; }
+  const data = await file.arrayBuffer();
+  await DB.put('templates', { id: uid(), name, type: isPdf ? 'pdf' : 'xlsx', data, created: Date.now() });
+  toast('Vorlage „' + name + '“ gespeichert.');
+  showHome();
+}
+
+async function newReport(tplId) {
+  const t = await DB.get('templates', tplId); if (!t) return;
+  const r = {
+    id: uid(), templateId: t.id, name: t.name + ' ' + todayDE(), type: t.type, tpl: t.data,
+    author: settings.name, created: Date.now(), updated: Date.now(),
+    state: { items: [], fields: {}, values: {}, checks: {}, sig: null, signName: settings.name, signDate: todayDE(), allEdit: false }
+  };
+  await DB.put('reports', r);
+  openReport(r.id);
+}
+
+async function openReport(id) {
+  const r = await DB.get('reports', id); if (!r) { toast('Bericht nicht gefunden.'); return; }
+  cur = r; document.body.classList.add('editing');
+  if (r.type === 'pdf') await pdfEditor(); else await xlsEditor();
+}
+
+function touch() {
+  if (!cur) return;
+  cur.updated = Date.now();
+  clearTimeout(saveT); saveT = setTimeout(() => { saveT = null; DB.put('reports', cur).catch(() => toast('Speichern nicht möglich.')); }, 400);
+}
+async function flush() { if (saveT && cur) { clearTimeout(saveT); saveT = null; try { await DB.put('reports', cur); } catch (e) {} } }
+
+const editorBar = () =>
+  '<div class="ebar"><button type="button" class="btn small" data-act="home">‹ Zurück</button>' +
+  '<div class="etitle" data-act="rename" title="Umbenennen">' + esc(cur.name) + '</div>' +
+  '<button type="button" class="btn small primary" data-act="export">Teilen</button></div>';
+
+/* ================= PDF-Editor ================= */
+let pdfDoc = null, pageInfo = [], formFields = [], zoom = 1, mode = 'view', renderToken = 0;
+
+async function pdfEditor() {
+  mode = 'view'; zoom = 1;
+  app.innerHTML = editorBar() + '<div class="busy" id="pbusy">PDF wird geöffnet …</div><div id="fields"></div><div class="pages" id="pages"></div>' +
+    '<div class="tools"><div class="tools-in"><div class="modes" id="modes">' +
+    [['view', 'Ansehen'], ['text', 'Text'], ['date', 'Datum'], ['check', 'Haken'], ['sig', 'Unterschr.']].map(m =>
+      '<button type="button" data-mode="' + m[0] + '" aria-pressed="' + (m[0] === mode ? 'true' : 'false') + '">' + m[1] + '</button>').join('') +
+    '</div><div class="zoomrow"><span id="modehint">Tippe oben auf ein Werkzeug, dann auf die Stelle im Dokument.</span>' +
+    '<span class="zb"><button type="button" class="btn small" data-act="zoomout" aria-label="Verkleinern">−</button><span id="zoomv">100 %</span>' +
+    '<button type="button" class="btn small" data-act="zoomin" aria-label="Vergrößern">+</button></span></div></div></div>';
+  window.scrollTo(0, 0);
+  try {
+    pdfDoc = await pdfjsLib.getDocument({
+      data: new Uint8Array(copyBuf(cur.tpl)),
+      wasmUrl: './lib/wasm/',
+      standardFontDataUrl: './lib/standard_fonts/'
+    }).promise;
+  } catch (e) { $('pbusy').textContent = 'Diese PDF lässt sich nicht öffnen.'; return; }
+  formFields = [];
+  try {
+    const d = await PDFDocument.load(copyBuf(cur.tpl), { ignoreEncryption: true });
+    d.getForm().getFields().forEach(f => {
+      const n = f.getName(); let kind = null, opts = [], init = '';
+      if (f instanceof PL.PDFTextField) { kind = 'text'; init = f.getText() || ''; }
+      else if (f instanceof PL.PDFCheckBox) { kind = 'check'; init = f.isChecked(); }
+      else if (f instanceof PL.PDFDropdown || f instanceof PL.PDFOptionList) { kind = 'select'; opts = f.getOptions(); init = (f.getSelected() || [])[0] || ''; }
+      else if (f instanceof PL.PDFRadioGroup) { kind = 'select'; opts = f.getOptions(); init = f.getSelected() || ''; }
+      if (kind) { formFields.push({ n, kind, opts }); if (!(n in cur.state.fields)) cur.state.fields[n] = init; }
+    });
+  } catch (e) {}
+  $('pbusy').remove();
+  renderFormFields();
+  await renderPages();
+}
+
+function renderFormFields() {
+  const box = $('fields');
+  if (!formFields.length) {
+    box.innerHTML = '<div class="hintbox">Diese PDF hat keine eingebauten Formularfelder. Wähle unten „Text“, „Datum“, „Haken“ oder „Unterschr.“ und tippe dann auf die passende Stelle. Einträge kannst du verschieben oder antippen zum Ändern.</div>';
+    return;
+  }
+  const F = cur.state.fields;
+  box.innerHTML = '<section style="margin-top:0"><h2>Formularfelder der PDF (' + formFields.length + ')</h2>' + formFields.map(f => {
+    if (f.kind === 'check') return '<label class="cb"><input type="checkbox" data-ff="' + esc(f.n) + '"' + (F[f.n] ? ' checked' : '') + '><span>' + esc(f.n) + '</span></label>';
+    if (f.kind === 'select') return '<label class="row"><span class="lab">' + esc(f.n) + '</span><select data-ff="' + esc(f.n) + '"><option value=""></option>' +
+      f.opts.map(o => '<option' + (o === F[f.n] ? ' selected' : '') + '>' + esc(o) + '</option>').join('') + '</select></label>';
+    return '<label class="row"><span class="lab">' + esc(f.n) + '</span><input type="text" data-ff="' + esc(f.n) + '" value="' + esc(F[f.n]) + '"></label>';
+  }).join('') + '<p class="muted">Zusätzlich kannst du unten im Dokument Text, Haken und deine Unterschrift setzen.</p></section>';
+}
+
+async function renderPages() {
+  const tok = ++renderToken;
+  const wrap = $('pages'); if (!wrap || !pdfDoc) return;
+  wrap.innerHTML = '';
+  const base = Math.min(wrap.clientWidth || window.innerWidth, 900) - 16;
+  const dw = Math.round(base * zoom);
+  $('zoomv').textContent = Math.round(zoom * 100) + ' %';
+  pageInfo = [];
+  const dpr = Math.min(window.devicePixelRatio || 1, zoom > 1.5 ? 2 : 2.5);
+  for (let i = 1; i <= pdfDoc.numPages; i++) {
+    if (tok !== renderToken) return;
+    const page = await pdfDoc.getPage(i);
+    const vp1 = page.getViewport({ scale: 1 });
+    const s = dw / vp1.width;
+    const h = Math.round(vp1.height * s);
+    const div = document.createElement('div'); div.className = 'pg'; div.style.width = dw + 'px'; div.style.height = h + 'px';
+    const cv = document.createElement('canvas'); cv.width = Math.floor(dw * dpr); cv.height = Math.floor(h * dpr);
+    const ov = document.createElement('div'); ov.className = 'ov' + (mode === 'view' ? '' : ' add'); ov.dataset.p = i - 1;
+    div.append(cv, ov);
+    const no = document.createElement('div'); no.className = 'pgno'; no.textContent = 'Seite ' + i + ' von ' + pdfDoc.numPages;
+    wrap.append(div, no);
+    pageInfo[i - 1] = { wPt: vp1.width, hPt: vp1.height, dw };
+    drawItems(i - 1);
+    try { await page.render({ canvasContext: cv.getContext('2d'), canvas: cv, viewport: page.getViewport({ scale: s * dpr }) }).promise; } catch (e) {}
+  }
+}
+
+function ovFor(p) { return document.querySelector('.ov[data-p="' + p + '"]'); }
+function drawItems(p) {
+  const ov = ovFor(p); if (!ov) return;
+  ov.innerHTML = '';
+  cur.state.items.filter(it => it.p === p).forEach(it => ov.appendChild(itemEl(it)));
+}
+function itemEl(it) {
+  const info = pageInfo[it.p]; const k = info.dw / info.wPt;
+  const el = document.createElement('div'); el.className = 'it it-' + it.t; el.dataset.id = it.id;
+  el.style.left = (it.x * 100) + '%'; el.style.top = (it.y * 100) + '%';
+  if (it.t === 'text') { el.style.fontSize = (it.s * k) + 'px'; el.textContent = it.v || 'Text'; if (!it.v) el.classList.add('ph'); }
+  else if (it.t === 'check') {
+    const s = it.s * k; el.style.width = s + 'px'; el.style.height = s + 'px';
+    el.innerHTML = '<svg viewBox="0 0 10 10" aria-hidden="true"><polyline points="1,5.5 4,8.5 9,1.5" fill="none" stroke="#000" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  } else if (it.t === 'sig') { el.style.width = (it.w * 100) + '%'; el.innerHTML = '<img alt="Unterschrift" src="' + it.img + '">'; }
+  dragify(el, it);
+  return el;
+}
+function dragify(el, it) {
+  el.addEventListener('pointerdown', e => {
+    e.stopPropagation();
+    const ov = el.parentNode; const r = ov.getBoundingClientRect();
+    const sx = e.clientX, sy = e.clientY, ox = it.x, oy = it.y; let moved = false;
+    try { el.setPointerCapture(e.pointerId); } catch (x) {}
+    const mv = ev => {
+      const dx = ev.clientX - sx, dy = ev.clientY - sy;
+      if (!moved && Math.hypot(dx, dy) < 6) return;
+      moved = true;
+      it.x = clamp(ox + dx / r.width, 0, 0.98); it.y = clamp(oy + dy / r.height, 0, 0.98);
+      el.style.left = it.x * 100 + '%'; el.style.top = it.y * 100 + '%';
+    };
+    const up = () => {
+      el.removeEventListener('pointermove', mv); el.removeEventListener('pointerup', up); el.removeEventListener('pointercancel', up);
+      if (moved) touch(); else itemSheet(it);
+    };
+    el.addEventListener('pointermove', mv); el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
+  });
+  el.addEventListener('click', e => e.stopPropagation());
+}
+
+function addItem(p, x, y) {
+  const info = pageInfo[p]; let it;
+  if (mode === 'text' || mode === 'date') {
+    it = { id: uid(), t: 'text', p, x: clamp(x, 0, 0.95), y: clamp(y - 0.006, 0, 0.98), s: 10, v: mode === 'date' ? todayDE() : '' };
+  } else if (mode === 'check') {
+    const s = 10, fw = s / info.wPt, fh = s / info.hPt;
+    it = { id: uid(), t: 'check', p, x: clamp(x - fw / 2, 0, 0.98), y: clamp(y - fh / 2, 0, 0.98), s };
+  } else if (mode === 'sig') {
+    const place = sig => {
+      const w = 0.26, hFrac = (w * info.wPt / sig.ratio) / info.hPt;
+      const n = { id: uid(), t: 'sig', p, x: clamp(x - w / 2, 0, 1 - w), y: clamp(y - hFrac / 2, 0, 0.98), w, img: sig.img, ratio: sig.ratio };
+      cur.state.items.push(n); drawItems(p); touch(); setMode('view');
+    };
+    if (settings.sig) place(settings.sig); else signaturePad(place);
+    return;
+  }
+  cur.state.items.push(it); drawItems(p); touch();
+  if (mode === 'text') { setMode('view'); itemSheet(it); }
+}
+
+function setMode(m) {
+  mode = m;
+  document.querySelectorAll('#modes button').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === m ? 'true' : 'false'));
+  document.querySelectorAll('.ov').forEach(o => o.classList.toggle('add', m !== 'view'));
+  const hints = { view: 'Tippe oben auf ein Werkzeug, dann auf die Stelle im Dokument.', text: 'Tippe auf die Stelle für den Text.', date: 'Tippe auf die Stelle für das heutige Datum.', check: 'Tippe auf jedes Kästchen, das einen Haken bekommt.', sig: 'Tippe auf die Stelle für die Unterschrift.' };
+  const h = $('modehint'); if (h) h.textContent = hints[m];
+}
+
+function itemSheet(it) {
+  const el = () => document.querySelector('.it[data-id="' + it.id + '"]');
+  const sizes = it.t === 'check' ? [8, 10, 12, 16] : [7, 8, 10, 12, 14];
+  let body = '';
+  if (it.t === 'text') body = '<h3>Text</h3><textarea id="itv" rows="3" placeholder="Text eingeben">' + esc(it.v) + '</textarea>';
+  if (it.t === 'check') body = '<h3>Haken</h3>';
+  if (it.t === 'sig') body = '<h3>Unterschrift</h3><label class="row"><span class="lab">Breite</span><input type="range" id="itw" min="10" max="60" value="' + Math.round(it.w * 100) + '"></label>' +
+    '<button type="button" class="btn" id="itnew">Neu unterschreiben</button>';
+  if (it.t !== 'sig') body += '<div class="row"><span class="lab">Größe (Punkt)</span><div class="chips" id="its">' + sizes.map(s => '<button type="button" data-s="' + s + '" aria-pressed="' + (s === it.s ? 'true' : 'false') + '">' + s + '</button>').join('') + '</div></div>';
+  body += '<div class="two"><button type="button" class="btn danger" id="itdel">Entfernen</button><button type="button" class="btn primary" data-close="1">Fertig</button></div>';
+  openSheet(body, root => {
+    const ta = root.querySelector('#itv');
+    if (ta) { ta.addEventListener('input', () => { it.v = ta.value; const e = el(); if (e) { e.textContent = it.v || 'Text'; e.classList.toggle('ph', !it.v); } touch(); }); setTimeout(() => ta.focus(), 50); }
+    const ss = root.querySelector('#its');
+    if (ss) ss.addEventListener('click', e => { const s = +e.target.getAttribute('data-s'); if (!s) return; it.s = s; ss.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', +b.dataset.s === s ? 'true' : 'false')); drawItems(it.p); touch(); });
+    const w = root.querySelector('#itw');
+    if (w) w.addEventListener('input', () => { it.w = w.value / 100; const e = el(); if (e) e.style.width = w.value + '%'; touch(); });
+    const nn = root.querySelector('#itnew');
+    if (nn) nn.addEventListener('click', () => signaturePad(sig => { it.img = sig.img; it.ratio = sig.ratio; drawItems(it.p); touch(); }));
+    root.querySelector('#itdel').addEventListener('click', () => { cur.state.items = cur.state.items.filter(x => x.id !== it.id); drawItems(it.p); touch(); closeSheet(); });
+  });
+  sheetClose = () => { if (it.t === 'text' && !it.v) { cur.state.items = cur.state.items.filter(x => x.id !== it.id); drawItems(it.p); touch(); } };
+}
+
+/* ================= Excel-Editor ================= */
+const BOX_OFF = ['☐', '□', '¨', '[ ]', '( )', '[]'];
+const BOX_ON = ['☑', '☒', '✓', '✔', '✗', '✘', '■', 'þ', 'ý', '[x]', '[X]', '(x)', '(X)'];
+const classify = t => t === '' ? 'empty' : (BOX_OFF.includes(t) || BOX_ON.includes(t)) ? 'box' : 'text';
+let xModel = null;
+
+function readWb(buf) { return window.XLSX.read(new Uint8Array(copyBuf(buf)), { type: 'array', cellStyles: true, cellDates: false }); }
+function cellText(cell) { if (!cell) return ''; const v = cell.w != null ? cell.w : cell.v; return v == null ? '' : String(v).trim(); }
+
+function buildModel(wb) {
+  const X = window.XLSX; const sheets = [];
+  wb.SheetNames.forEach(sn => {
+    const ws = wb.Sheets[sn]; if (!ws || !ws['!ref']) return;
+    const rg = X.utils.decode_range(ws['!ref']);
+    const maxR = Math.min(rg.e.r, rg.s.r + 400), maxC = Math.min(rg.e.c, rg.s.c + 40);
+    const covered = new Set();
+    (ws['!merges'] || []).forEach(m => { for (let r = m.s.r; r <= m.e.r; r++) for (let c = m.s.c; c <= m.e.c; c++) if (r !== m.s.r || c !== m.s.c) covered.add(r + ',' + c); });
+    const rows = [];
+    for (let r = rg.s.r; r <= maxR; r++) {
+      const cells = [];
+      for (let c = rg.s.c; c <= maxC; c++) {
+        if (covered.has(r + ',' + c)) continue;
+        const addr = X.utils.encode_cell({ r, c }); const t = cellText(ws[addr]);
+        cells.push({ addr, t, kind: classify(t) });
+      }
+      while (cells.length && cells[cells.length - 1].kind === 'empty' && cells.length > 1 && cells[cells.length - 2].kind === 'empty') cells.pop();
+      const nonEmpty = cells.filter(c => c.kind !== 'empty').length;
+      const segs = [];
+      for (let i = 0; i < cells.length; i++) {
+        const c = cells[i], nx = cells[i + 1];
+        if (c.kind === 'box') {
+          let label = ''; if (nx && nx.kind === 'text') { label = nx.t; i++; }
+          segs.push({ k: 'cb', key: sn + '!' + c.addr, addr: c.addr, label, on: BOX_ON.includes(c.t), orig: c.t });
+        } else if (c.kind === 'text') {
+          const lone = nonEmpty === 1 && !/:\s*$/.test(c.t);
+          if (nx && nx.kind === 'empty' && !lone) { segs.push({ k: 'field', key: sn + '!' + nx.addr, addr: nx.addr, label: c.t.replace(/:\s*$/, '') }); i++; }
+          else segs.push({ k: 'label', key: sn + '!' + c.addr, addr: c.addr, text: c.t });
+        }
+      }
+      if (segs.length) rows.push(segs);
+    }
+    sheets.push({ name: sn, rows });
+  });
+  return sheets;
+}
+
+async function waitXlsx() {
+  for (let i = 0; i < 50 && !window.XLSX; i++) await new Promise(r => setTimeout(r, 100));
+  return !!window.XLSX;
+}
+
+async function xlsEditor() {
+  app.innerHTML = editorBar() + '<div class="busy" id="xbusy">Excel-Datei wird geöffnet …</div>';
+  window.scrollTo(0, 0);
+  if (!(await waitXlsx())) { $('xbusy').textContent = 'Die Excel-Funktion konnte nicht geladen werden. Beim ersten Öffnen ist eine Internetverbindung nötig.'; return; }
+  try { xModel = buildModel(readWb(cur.tpl)); } catch (e) { $('xbusy').textContent = 'Diese Excel-Datei lässt sich nicht lesen.'; return; }
+  const st = cur.state;
+  xModel.forEach(sh => sh.rows.forEach(segs => segs.forEach(s => {
+    if (s.k === 'cb' && !(s.key in st.checks)) st.checks[s.key] = s.on;
+    if (s.k === 'field' && !(s.key in st.values)) st.values[s.key] = '';
+  })));
+  renderXls();
+}
+
+function renderXls() {
+  const st = cur.state; const multi = xModel.length > 1;
+  const long = /bemerk|beschreib|mängel|maengel|hinweis|maßnahme|anlagenteile|notiz/i;
+  const field = (key, label, val) => long.test(label)
+    ? '<label class="row"><span class="lab">' + esc(label) + '</span><textarea data-xv="' + esc(key) + '" rows="3">' + esc(val) + '</textarea></label>'
+    : '<label class="row"><span class="lab">' + esc(label) + '</span><input type="text" data-xv="' + esc(key) + '" value="' + esc(val) + '"></label>';
+  let html = editorBar() +
+    '<div class="hintbox">Die Felder wurden automatisch aus der Excel-Datei erkannt. Fehlt etwas, schalte „Auch vorhandene Texte bearbeiten“ ein.</div>' +
+    '<label class="cb"><input type="checkbox" id="allEdit"' + (st.allEdit ? ' checked' : '') + '><span>Auch vorhandene Texte bearbeiten</span></label>';
+  xModel.forEach(sh => {
+    html += '<section>' + (multi ? '<h2>' + esc(sh.name) + '</h2>' : '');
+    sh.rows.forEach(segs => {
+      const onlyLabels = segs.every(s => s.k === 'label');
+      if (onlyLabels && !st.allEdit) { html += '<p class="xhead">' + segs.map(s => esc(s.text)).join(' · ') + '</p>'; return; }
+      html += '<div class="xrow">' + segs.map(s => {
+        if (s.k === 'cb') return '<label class="cb"><input type="checkbox" data-xc="' + esc(s.key) + '"' + (st.checks[s.key] ? ' checked' : '') + '><span>' + esc(s.label || 'Kästchen ' + s.addr) + '</span></label>';
+        if (s.k === 'field') return field(s.key, s.label, st.values[s.key] || '');
+        if (st.allEdit) return field(s.key, 'Zelle ' + s.addr, s.key in st.values ? st.values[s.key] : s.text);
+        return '<div class="xlab">' + esc(s.text) + '</div>';
+      }).join('') + '</div>';
+    });
+    html += '</section>';
+  });
+  html += '<section><h2>Unterschrift</h2>' +
+    '<label class="row"><span class="lab">Name</span><input type="text" data-sv="signName" value="' + esc(st.signName || '') + '"></label>' +
+    '<label class="row"><span class="lab">Datum</span><input type="text" data-sv="signDate" value="' + esc(st.signDate || '') + '"></label>' +
+    '<div class="sigprev">' + (st.sig ? '<img alt="Unterschrift" src="' + st.sig.img + '">' : '<span class="muted">Noch nicht unterschrieben</span>') + '</div>' +
+    '<div class="two" style="margin-top:10px">' +
+    (settings.sig ? '<button type="button" class="btn" data-act="xsigmine">Meine Unterschrift</button>' : '') +
+    '<button type="button" class="btn" data-act="xsignew">' + (st.sig ? 'Neu unterschreiben' : 'Unterschreiben') + '</button>' +
+    (st.sig ? '<button type="button" class="btn danger" data-act="xsigdel">Entfernen</button>' : '') + '</div></section>' +
+    '<div style="margin-top:24px"><button type="button" class="btn primary block" data-act="export">Speichern und teilen</button></div>' + footer();
+  app.innerHTML = html;
+}
+
+/* ================= Export ================= */
+function safe(font, s) {
+  let o = '';
+  for (const ch of String(s)) { try { font.encodeText(ch); o += ch; } catch (e) { o += (ch === '✓' || ch === '✔') ? 'x' : (ch === '☐' ? '[ ]' : '?'); } }
+  return o;
+}
+function wrapText(txt, font, size, maxW) {
+  const out = [];
+  String(txt).split('\n').forEach(par => {
+    const words = par.split(/\s+/); let line = '';
+    words.forEach(w => {
+      const t = line ? line + ' ' + w : w;
+      if (font.widthOfTextAtSize(t, size) <= maxW || !line) line = t; else { out.push(line); line = w; }
+      while (font.widthOfTextAtSize(line, size) > maxW && line.length > 1) {
+        let cut = line.length - 1; while (cut > 1 && font.widthOfTextAtSize(line.slice(0, cut), size) > maxW) cut--;
+        out.push(line.slice(0, cut)); line = line.slice(cut);
+      }
+    });
+    out.push(line);
+  });
+  return out;
+}
+
+async function pdfFromPdf() {
+  const doc = await PDFDocument.load(copyBuf(cur.tpl), { ignoreEncryption: true });
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  try {
+    const form = doc.getForm(); const F = cur.state.fields;
+    form.getFields().forEach(f => {
+      const n = f.getName(); if (!(n in F)) return; const v = F[n];
+      try {
+        if (f instanceof PL.PDFTextField) f.setText(safe(font, v || ''));
+        else if (f instanceof PL.PDFCheckBox) { v ? f.check() : f.uncheck(); }
+        else if ((f instanceof PL.PDFDropdown || f instanceof PL.PDFOptionList || f instanceof PL.PDFRadioGroup) && v) f.select(v);
+      } catch (e) {}
+    });
+    try { form.updateFieldAppearances(font); } catch (e) {}
+  } catch (e) {}
+  const pages = doc.getPages(); const cache = {};
+  for (const it of cur.state.items) {
+    const pg = pages[it.p]; if (!pg) continue;
+    const b = pg.getCropBox(); const X = b.x + it.x * b.width; const Yt = b.y + b.height - it.y * b.height;
+    if (it.t === 'text') {
+      (it.v || '').split('\n').forEach((ln, i) => { if (ln) pg.drawText(safe(font, ln), { x: X, y: Yt - it.s * 0.87 - i * it.s * 1.15, size: it.s, font, color: rgb(0, 0, 0) }); });
+    } else if (it.t === 'check') {
+      const s = it.s, P = (u, v) => ({ x: X + u * s / 10, y: Yt - v * s / 10 }), th = Math.max(0.8, s * 0.13);
+      pg.drawLine({ start: P(1, 5.5), end: P(4, 8.5), thickness: th, color: rgb(0, 0, 0) });
+      pg.drawLine({ start: P(4, 8.5), end: P(9, 1.5), thickness: th, color: rgb(0, 0, 0) });
+    } else if (it.t === 'sig') {
+      const im = cache[it.img] || (cache[it.img] = await doc.embedPng(it.img));
+      const w = it.w * b.width, h = w / it.ratio;
+      pg.drawImage(im, { x: X, y: Yt - h, width: w, height: h });
+    }
+  }
+  return doc.save();
+}
+
+async function pdfFromXlsx() {
+  const st = cur.state;
+  const doc = await PDFDocument.create();
+  const f = await doc.embedFont(StandardFonts.Helvetica), fb = await doc.embedFont(StandardFonts.HelveticaBold);
+  const W = 595.28, H = 841.89, M = 40, CW = W - 2 * M; let pg, y;
+  const black = rgb(0, 0, 0), grey = rgb(0.93, 0.93, 0.93);
+  const newPage = () => { pg = doc.addPage([W, H]); y = H - M; };
+  const need = h => { if (y - h < M + 24) newPage(); };
+  newPage();
+  pg.drawText(safe(fb, cur.name), { x: M, y: y - 14, size: 14, font: fb }); y -= 26;
+  pg.drawText(safe(f, 'Erstellt mit GuS Formulare · ' + (cur.author || '')), { x: M, y: y - 8, size: 8, font: f, color: rgb(0.3, 0.3, 0.3) }); y -= 18;
+  const twoCol = (label, value) => {
+    const lw = CW * 0.42;
+    const L = wrapText(safe(f, label), f, 8.5, lw - 8), V = wrapText(safe(fb, value || ''), fb, 8.5, CW - lw - 8);
+    const h = Math.max(L.length, V.length) * 10.5 + 6; need(h);
+    pg.drawRectangle({ x: M, y: y - h, width: lw, height: h, color: grey, borderColor: black, borderWidth: 0.5 });
+    pg.drawRectangle({ x: M + lw, y: y - h, width: CW - lw, height: h, borderColor: black, borderWidth: 0.5 });
+    L.forEach((l, i) => pg.drawText(l, { x: M + 4, y: y - 11 - i * 10.5, size: 8.5, font: f }));
+    V.forEach((l, i) => pg.drawText(l, { x: M + lw + 4, y: y - 11 - i * 10.5, size: 8.5, font: fb }));
+    y -= h;
+  };
+  const cbRow = (label, on) => {
+    const L = wrapText(safe(f, label), f, 8.5, CW - 24); const h = Math.max(16, L.length * 10.5 + 6); need(h);
+    pg.drawRectangle({ x: M, y: y - h, width: CW, height: h, borderColor: black, borderWidth: 0.5 });
+    const bx = M + 5, by = y - h / 2 - 4;
+    pg.drawRectangle({ x: bx, y: by, width: 8, height: 8, borderColor: black, borderWidth: 0.6 });
+    if (on) { pg.drawLine({ start: { x: bx + 1.5, y: by + 4 }, end: { x: bx + 3.5, y: by + 1.5 }, thickness: 1, color: black }); pg.drawLine({ start: { x: bx + 3.5, y: by + 1.5 }, end: { x: bx + 7, y: by + 7 }, thickness: 1, color: black }); }
+    L.forEach((l, i) => pg.drawText(l, { x: M + 20, y: y - 11 - i * 10.5, size: 8.5, font: f }));
+    y -= h;
+  };
+  const heading = t => { const L = wrapText(safe(fb, t), fb, 10, CW); need(L.length * 13 + 8); y -= 6; L.forEach(l => { pg.drawText(l, { x: M, y: y - 10, size: 10, font: fb }); y -= 13; }); y -= 2; };
+  const plain = t => { const L = wrapText(safe(f, t), f, 8.5, CW); need(L.length * 10.5 + 4); L.forEach(l => { pg.drawText(l, { x: M, y: y - 9, size: 8.5, font: f }); y -= 10.5; }); y -= 3; };
+
+  xModel.forEach(sh => {
+    if (xModel.length > 1) { need(30); y -= 8; heading(sh.name); }
+    sh.rows.forEach(segs => {
+      if (segs.every(s => s.k === 'label') && !st.allEdit) { heading(segs.map(s => s.text).join(' · ')); return; }
+      segs.forEach(s => {
+        if (s.k === 'cb') cbRow(s.label || s.addr, !!st.checks[s.key]);
+        else if (s.k === 'field') twoCol(s.label, st.values[s.key] || '');
+        else if (st.allEdit) twoCol('Zelle ' + s.addr, s.key in st.values ? st.values[s.key] : s.text);
+        else plain(s.text);
+      });
+    });
+  });
+  need(110); y -= 30;
+  if (st.sig) { const im = await doc.embedPng(st.sig.img); const w = 170, h = Math.min(60, w / st.sig.ratio); pg.drawImage(im, { x: W - M - 200, y: y - h, width: Math.min(w, h * st.sig.ratio), height: h }); }
+  y -= 66;
+  pg.drawLine({ start: { x: M, y }, end: { x: M + 160, y }, thickness: 0.5, color: black });
+  pg.drawLine({ start: { x: W - M - 220, y }, end: { x: W - M, y }, thickness: 0.5, color: black });
+  pg.drawText(safe(f, st.signDate || ''), { x: M + 4, y: y + 4, size: 9, font: f });
+  pg.drawText('Datum', { x: M, y: y - 11, size: 8, font: f });
+  pg.drawText(safe(f, (st.signName || '') + ' (Unterschrift)'), { x: W - M - 220, y: y - 11, size: 8, font: f });
+  const n = doc.getPageCount();
+  doc.getPages().forEach((p, i) => p.drawText('Seite ' + (i + 1) + ' von ' + n, { x: W / 2 - 22, y: 22, size: 8, font: f }));
+  return doc.save();
+}
+
+function xlsxFromXlsx() {
+  const X = window.XLSX; const wb = readWb(cur.tpl); const st = cur.state;
+  const setCell = (key, v) => {
+    const i = key.lastIndexOf('!'); const sn = key.slice(0, i), addr = key.slice(i + 1); const ws = wb.Sheets[sn]; if (!ws) return;
+    const old = ws[addr] || {}; const c = Object.assign({}, old, { t: 's', v: String(v) }); delete c.w; delete c.f; delete c.r; delete c.h; ws[addr] = c;
+  };
+  Object.keys(st.values).forEach(k => { const v = st.values[k]; if (v !== '' && v != null) setCell(k, v); });
+  xModel.forEach(sh => sh.rows.forEach(segs => segs.forEach(s => {
+    if (s.k !== 'cb') return; const on = !!st.checks[s.key];
+    const wing = s.orig === '¨' || s.orig === 'þ' || s.orig === 'ý';
+    const brk = s.orig.charAt(0) === '[' || s.orig.charAt(0) === '(';
+    setCell(s.key, wing ? (on ? 'þ' : '¨') : brk ? (on ? s.orig.charAt(0) + 'x' + (s.orig.charAt(0) === '[' ? ']' : ')') : s.orig.charAt(0) + ' ' + (s.orig.charAt(0) === '[' ? ']' : ')')) : (on ? '☒' : '☐'));
+  })));
+  const first = wb.Sheets[wb.SheetNames[0]];
+  if (first && first['!ref']) {
+    const rg = X.utils.decode_range(first['!ref']); const r = rg.e.r + 2;
+    const a = X.utils.encode_cell({ r, c: rg.s.c });
+    first[a] = { t: 's', v: 'Unterschrieben' + (st.sig ? '' : ' (ohne Unterschrift)') + ': ' + (st.signName || '') + ', ' + (st.signDate || '') };
+    rg.e.r = r; first['!ref'] = X.utils.encode_range(rg);
+  }
+  return X.write(wb, { bookType: 'xlsx', type: 'array', cellStyles: true });
+}
+
+function xlsxFromPdf() {
+  const X = window.XLSX; const rows = [['Art', 'Seite', 'Inhalt']];
+  Object.keys(cur.state.fields).forEach(n => { const v = cur.state.fields[n]; rows.push(['Formularfeld: ' + n, '', typeof v === 'boolean' ? (v ? 'ja' : 'nein') : v]); });
+  cur.state.items.slice().sort((a, b) => a.p - b.p || a.y - b.y || a.x - b.x).forEach(it => {
+    rows.push([it.t === 'text' ? 'Text' : it.t === 'check' ? 'Haken' : 'Unterschrift', it.p + 1, it.t === 'text' ? it.v : it.t === 'sig' ? (cur.author || '') : 'x']);
+  });
+  const ws = X.utils.aoa_to_sheet(rows); ws['!cols'] = [{ wch: 30 }, { wch: 7 }, { wch: 70 }];
+  const wb = X.utils.book_new(); X.utils.book_append_sheet(wb, ws, 'Bericht');
+  return X.write(wb, { bookType: 'xlsx', type: 'array' });
+}
+
+function b64(buf) { const u = new Uint8Array(buf); let s = ''; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(s); }
+function unb64(s) { const bin = atob(s); const u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u.buffer; }
+
+function exportSheet() {
+  openSheet(
+    '<h3>Speichern und teilen</h3>' +
+    '<button type="button" class="btn primary block" data-exp="pdf">Als PDF (für Foxit, Mail, WhatsApp)</button>' +
+    '<button type="button" class="btn block" data-exp="xlsx">Als Excel</button>' +
+    '<button type="button" class="btn block" data-exp="json">An Kollegen zum Weiterbearbeiten</button>' +
+    '<p class="muted">Nach dem Erstellen öffnet sich das Teilen-Menü des iPhones. Dort wählst du zum Beispiel Foxit, um dort zu unterschreiben, oder „In Dateien sichern“.</p>' +
+    '<button type="button" class="btn block" data-close="1">Schließen</button>',
+    root => root.addEventListener('click', async e => {
+      const kind = e.target.getAttribute('data-exp'); if (!kind) return;
+      e.target.disabled = true; const old = e.target.textContent; e.target.textContent = 'Wird erstellt …';
+      try {
+        await flush();
+        let bytes, name, mime; const base = fileSafe(cur.name);
+        if (kind === 'pdf') { bytes = cur.type === 'pdf' ? await pdfFromPdf() : await pdfFromXlsx(); name = base + '.pdf'; mime = 'application/pdf'; }
+        else if (kind === 'xlsx') {
+          if (!(await waitXlsx())) throw new Error('Excel-Funktion nicht geladen');
+          bytes = cur.type === 'pdf' ? xlsxFromPdf() : xlsxFromXlsx(); name = base + '.xlsx'; mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+        } else {
+          const copy = Object.assign({}, cur, { tpl: b64(cur.tpl) });
+          bytes = new TextEncoder().encode(JSON.stringify({ format: 'gus-bericht', version: 1, report: copy })); name = base + '.json'; mime = 'application/json';
+        }
+        readySheet(bytes, name, mime);
+      } catch (err) {
+        e.target.disabled = false; e.target.textContent = old; toast('Das hat nicht geklappt: ' + (err && err.message ? err.message : 'Fehler'));
+      }
+    }));
+}
+
+function readySheet(bytes, name, mime) {
+  const blob = new Blob([bytes], { type: mime });
+  const file = new File([blob], name, { type: mime });
+  const canShare = !!(navigator.canShare && navigator.canShare({ files: [file] }));
+  openSheet(
+    '<h3>Datei ist fertig</h3><p><b>' + esc(name) + '</b><br><span class="muted">' + Math.max(1, Math.round(blob.size / 1024)) + ' KB</span></p>' +
+    (canShare ? '<button type="button" class="btn primary block" id="doShare">Teilen oder in Foxit öffnen</button>' : '') +
+    '<button type="button" class="btn block" id="doSave">Herunterladen</button>' +
+    '<button type="button" class="btn block" data-close="1">Schließen</button>',
+    root => {
+      const sh = root.querySelector('#doShare');
+      if (sh) sh.addEventListener('click', () => {
+        navigator.share({ files: [file], title: name }).then(() => toast('Geteilt.')).catch(err => { if (!err || err.name !== 'AbortError') toast('Teilen nicht möglich. Nutze „Herunterladen“.'); });
+      });
+      root.querySelector('#doSave').addEventListener('click', () => {
+        const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = name;
+        document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 10000);
+      });
+    });
+}
+
+async function importReport(file) {
+  try {
+    const d = JSON.parse(await file.text());
+    if (!d || d.format !== 'gus-bericht' || !d.report) throw new Error();
+    const r = d.report; r.tpl = unb64(r.tpl); r.updated = Date.now();
+    await DB.put('reports', r);
+    toast('Bericht „' + r.name + '“ übernommen.');
+    openReport(r.id);
+  } catch (e) { toast('Diese Datei ist kein geteilter GuS-Bericht.'); }
+}
+
+/* ================= Einstellungen ================= */
+function showSettings(first) {
+  document.body.classList.remove('editing');
+  app.innerHTML = bigHeader() +
+    '<h1>' + (first ? 'Willkommen' : 'Einstellungen') + '</h1>' +
+    (first ? '<p>Trage einmal deinen Namen ein. Er erscheint in deinen Berichten.</p>' : '') +
+    '<section><h2>Dein Name</h2><label class="row"><span class="lab">Name, wie er im Bericht stehen soll</span><input type="text" id="setName" value="' + esc(settings.name) + '" placeholder="z. B. Ansgar Gebbeken" autocomplete="name"></label></section>' +
+    '<section><h2>Meine Unterschrift</h2><div class="sigprev">' + (settings.sig ? '<img alt="Gespeicherte Unterschrift" src="' + settings.sig.img + '">' : '<span class="muted">Noch keine Unterschrift gespeichert</span>') + '</div>' +
+    '<div class="two" style="margin-top:10px"><button type="button" class="btn" data-act="signew">' + (settings.sig ? 'Neu zeichnen' : 'Unterschrift zeichnen') + '</button>' +
+    (settings.sig ? '<button type="button" class="btn danger" data-act="sigdel">Löschen</button>' : '') + '</div>' +
+    '<p class="muted" style="margin-top:8px">Die Unterschrift bleibt nur auf diesem Gerät.</p></section>' +
+    '<section><button type="button" class="btn primary block" data-act="saveset">Speichern</button></section>' +
+    '<section><h2>So kommt die App auf den Home-Bildschirm</h2><p>1. Diese Seite in Safari öffnen.<br>2. Auf das Teilen-Symbol tippen.<br>3. „Zum Home-Bildschirm“ wählen.</p>' +
+    '<p class="muted">Vorlagen und Berichte werden auf jedem iPhone einzeln gespeichert. Kollegen bekommen Vorlagen als Datei und Berichte über „An Kollegen zum Weiterbearbeiten“.</p></section>' +
+    footer();
+  window.scrollTo(0, 0);
+}
+
+/* ================= Klicks und Eingaben ================= */
+let armT = null;
+function arm(btn, label) {
+  if (btn.getAttribute('data-arm') === '1') return true;
+  btn.setAttribute('data-arm', '1'); const old = btn.textContent; btn.textContent = label;
+  clearTimeout(armT); armT = setTimeout(() => { if (btn.isConnected) { btn.removeAttribute('data-arm'); btn.textContent = old; } }, 3500);
+  return false;
+}
+
+app.addEventListener('click', async e => {
+  const mb = e.target.closest('#modes button');
+  if (mb) { setMode(mb.dataset.mode === mode ? 'view' : mb.dataset.mode); return; }
+  const ov = e.target.classList && e.target.classList.contains('ov') ? e.target : null;
+  if (ov && mode !== 'view') {
+    const r = ov.getBoundingClientRect();
+    addItem(+ov.dataset.p, (e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height);
+    return;
+  }
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const act = b.dataset.act, id = b.dataset.id;
+  if (act === 'settings') showSettings(false);
+  else if (act === 'home') showHome();
+  else if (act === 'newrep') newReport(id);
+  else if (act === 'open') openReport(id);
+  else if (act === 'deltpl') { if (arm(b, 'Wirklich?')) { await DB.del('templates', id); showHome(); } }
+  else if (act === 'delrep') { if (arm(b, 'Wirklich?')) { await DB.del('reports', id); showHome(); } }
+  else if (act === 'export') exportSheet();
+  else if (act === 'rename') {
+    openSheet('<h3>Bericht umbenennen</h3><input type="text" id="rn" value="' + esc(cur.name) + '"><button type="button" class="btn primary block" id="rnok">Übernehmen</button>', root => {
+      const i = root.querySelector('#rn'); setTimeout(() => i.focus(), 50);
+      root.querySelector('#rnok').addEventListener('click', () => { cur.name = i.value.trim() || cur.name; touch(); const t = document.querySelector('.etitle'); if (t) t.textContent = cur.name; closeSheet(); });
+    });
+  }
+  else if (act === 'zoomin' || act === 'zoomout') { const z = clamp(zoom + (act === 'zoomin' ? 0.5 : -0.5), 1, 3); if (z !== zoom) { zoom = z; renderPages(); } }
+  else if (act === 'xsigmine') { cur.state.sig = settings.sig; touch(); renderXls(); }
+  else if (act === 'xsignew') signaturePad(sig => { cur.state.sig = sig; touch(); renderXls(); });
+  else if (act === 'xsigdel') { cur.state.sig = null; touch(); renderXls(); }
+  else if (act === 'signew') { const n = $('setName').value; signaturePad(() => { settings.name = n; showSettings(false); }); }
+  else if (act === 'sigdel') { settings.sig = null; await saveSettings(); showSettings(false); }
+  else if (act === 'saveset') {
+    const n = $('setName').value.trim();
+    if (!n) { toast('Bitte einen Namen eintragen.'); return; }
+    settings.name = n; await saveSettings(); toast('Gespeichert.'); showHome();
+  }
+});
+
+app.addEventListener('input', e => {
+  const t = e.target; if (!cur) return;
+  if (t.dataset.ff != null) { cur.state.fields[t.dataset.ff] = t.type === 'checkbox' ? t.checked : t.value; touch(); }
+  else if (t.dataset.xv != null) { cur.state.values[t.dataset.xv] = t.value; touch(); }
+  else if (t.dataset.xc != null) { cur.state.checks[t.dataset.xc] = t.checked; touch(); }
+  else if (t.dataset.sv != null) { cur.state[t.dataset.sv] = t.value; touch(); }
+});
+app.addEventListener('change', e => {
+  const t = e.target;
+  if (t.id === 'upTpl' && t.files && t.files[0]) uploadTemplate(t.files[0]).catch(() => toast('Hochladen fehlgeschlagen.'));
+  else if (t.id === 'upRep' && t.files && t.files[0]) importReport(t.files[0]);
+  else if (t.id === 'allEdit' && cur) { cur.state.allEdit = t.checked; touch(); renderXls(); }
+  else if (cur && t.dataset.ff != null && t.tagName === 'SELECT') { cur.state.fields[t.dataset.ff] = t.value; touch(); }
+});
+
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flush(); });
+let rzT; window.addEventListener('resize', () => { clearTimeout(rzT); rzT = setTimeout(() => { if (cur && cur.type === 'pdf' && $('pages')) renderPages(); }, 300); });
+
+/* ================= Start ================= */
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
+}
+try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
+await loadSettings();
+if (!settings.name) showSettings(true); else showHome();
+</script>
+</body>
+</html>
